@@ -1,0 +1,37 @@
+{
+  "name": "@gkalpak/ng-maintain-utils",
+  "version": "0.0.0",
+  "description": "A private collection of utilities for developing tools to help maintain AngularJS-related GitHub repositories.",
+  "keywords": [
+    "Private",
+    "Utility",
+    "AngularJS"
+  ],
+  "main": "index",
+  "scripts": {
+    "lint": "eslint .",
+    "prepublish": "npm test",
+    "pretest": "npm run lint",
+    "test": "npm run test-unit && npm run test-e2e",
+    "test-e2e": "node scripts/run-tests --type=e2e",
+    "test-unit": "node scripts/run-tests --type=unit",
+    "test-watch": "npm run test-unit -- --watch",
+    "preversion": "npm test",
+    "postversion": "git push && git push --tags"
+  },
+  "license": "Unlicense",
+  "author": "gkalpak <kalpakas.g@gmail.com>",
+  "homepage": "https://github.com/gkalpak/ng-maintain-utils#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gkalpak/ng-maintain-utils.git"
+  },
+  "dependencies": {
+    "chalk": "^1.1.3",
+    "minimist": "^1.2.0"
+  },
+  "devDependencies": {
+    "eslint": "^3.4.0",
+    "jasmine": "^2.5.0"
+  }
+}
