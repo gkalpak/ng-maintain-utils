@@ -346,7 +346,7 @@ describe('AbstractCli', () => {
       input.usage = true;
       cli.run([], doWorkSpy);
 
-      expect(cli._displayUsage).toHaveBeenCalled();
+      expect(cli._displayUsage).toHaveBeenCalledWith('mockUsage');
       expect(doWorkSpy).toHaveBeenCalled();
     });
 
