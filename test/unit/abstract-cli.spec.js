@@ -170,57 +170,59 @@ describe('AbstractCli', () => {
   });
 
   describe('#_getAndValidateInput()', () => {
-    it('should parse the raw arguments using `_utils.parseArgs()`', () => {
+    it('should return a promise', () => {
+      let promise = cli._getAndValidateInput([], []);
+
+      expect(promise).toEqual(jasmine.any(Promise));
+    });
+
+    it('should parse the raw arguments using `_utils.parseArgs()`', done => {
       spyOn(cli._utils, 'parseArgs').and.callThrough();
 
       let rawArgs = [];
-      cli._getAndValidateInput(rawArgs, []);
 
-      expect(cli._utils.parseArgs).toHaveBeenCalledWith(rawArgs);
+      cli.
+        _getAndValidateInput(rawArgs, []).
+        then(() => expect(cli._utils.parseArgs).toHaveBeenCalledWith(rawArgs)).
+        then(done);
     });
 
-    it('should read the `usage` argument', () => {
-      let args;
-      let input;
+    it('should read the `usage` argument', done => {
+      let promises = [
+        cli._getAndValidateInput(['foo', 'bar'], []),
+        cli._getAndValidateInput(['foo', '--no-usage', 'bar'], []),
+        cli._getAndValidateInput(['foo', '--usage', 'bar'], [])
+      ];
 
-      args = ['foo', 'bar'];
-      input = cli._getAndValidateInput(args, []);
-
-      expect(input.usage).toBe(false);
-
-      args = ['foo', '--no-usage', 'bar'];
-      input = cli._getAndValidateInput(args, []);
-
-      expect(input.usage).toBe(false);
-
-      args = ['foo', '--usage', 'bar'];
-      input = cli._getAndValidateInput(args, []);
-
-      expect(input.usage).toBe(true);
+      Promise.
+        all(promises).
+        then(inputs => {
+          expect(inputs[0].usage).toBe(false);
+          expect(inputs[1].usage).toBe(false);
+          expect(inputs[2].usage).toBe(true);
+        }).
+        then(done);
     });
 
-    it('should read the `instructions` argument', () => {
-      let args;
-      let input;
+    it('should read the `instructions` argument', done => {
+      let promises = [
+        cli._getAndValidateInput(['foo', 'bar'], []),
+        cli._getAndValidateInput(['foo', '--no-instructions', 'bar'], []),
+        cli._getAndValidateInput(['foo', '--instructions', 'bar'], [])
+      ];
 
-      args = ['foo', 'bar'];
-      input = cli._getAndValidateInput(args, []);
-
-      expect(input.instructions).toBe(false);
-
-      args = ['foo', '--no-instructions', 'bar'];
-      input = cli._getAndValidateInput(args, []);
-
-      expect(input.instructions).toBe(false);
-
-      args = ['foo', '--instructions', 'bar'];
-      input = cli._getAndValidateInput(args, []);
-
-      expect(input.instructions).toBe(true);
+      Promise.
+        all(promises).
+        then(inputs => {
+          expect(inputs[0].instructions).toBe(false);
+          expect(inputs[1].instructions).toBe(false);
+          expect(inputs[2].instructions).toBe(true);
+        }).
+        then(done);
     });
 
-    it('should apply `argSpecs`', () => {
-      let args = ['foo', 'bar', '--baz=qux'];
+    it('should apply `argSpecs`', done => {
+      let rawArgs = ['foo', 'bar', '--baz=qux'];
       let argSpecs = [
         new ArgSpec.Unnamed(0, 'foo', () => true, ''),
         new ArgSpec.Unnamed(1, 'bar', () => true, ''),
@@ -228,20 +230,23 @@ describe('AbstractCli', () => {
         new ArgSpec('qux', () => true, '', 'default')
       ];
 
-      let input = cli._getAndValidateInput(args, argSpecs);
-
-      expect(input).toEqual(jasmine.objectContaining({
-        foo: 'foo',
-        bar: 'bar',
-        baz: 'qux',
-        qux: 'default'
-      }));
+      cli.
+        _getAndValidateInput(rawArgs, argSpecs).
+        then(input => {
+          expect(input).toEqual(jasmine.objectContaining({
+            foo: 'foo',
+            bar: 'bar',
+            baz: 'qux',
+            qux: 'default'
+          }));
+        }).
+        then(done);
     });
 
-    it('should not apply `argSpecs` if `--usage` is detected', () => {
+    it('should not apply `argSpecs` if `--usage` is detected', done => {
       spyOn(ArgSpec.prototype, 'applyOn').and.callThrough();
 
-      let args = ['foo', 'bar', '--baz=qux', '--usage'];
+      let rawArgs = ['foo', 'bar', '--baz=qux', '--usage'];
       let argSpecs = [
         new ArgSpec.Unnamed(0, 'foo', () => true, ''),
         new ArgSpec.Unnamed(1, 'bar', () => true, ''),
@@ -249,32 +254,37 @@ describe('AbstractCli', () => {
         new ArgSpec('qux', () => true, '', 'default')
       ];
 
-      let input = cli._getAndValidateInput(args, argSpecs);
-
-      expect(ArgSpec.prototype.applyOn).not.toHaveBeenCalled();
-      expect(input).not.toEqual(jasmine.objectContaining({
-        foo: 'foo',
-        bar: 'bar',
-        baz: 'qux',
-        qux: 'default'
-      }));
+      cli.
+        _getAndValidateInput(rawArgs, argSpecs).
+        then(input => {
+          expect(ArgSpec.prototype.applyOn).not.toHaveBeenCalled();
+          expect(input).not.toEqual(jasmine.objectContaining({
+            foo: 'foo',
+            bar: 'bar',
+            baz: 'qux',
+            qux: 'default'
+          }));
+        }).
+        then(done);
     });
 
-    it('should error if no PR is specified', () => {
-      let errorCb = jasmine.createSpy('errorCb');
-      spyOn(cli._uiUtils, 'exitWithErrorFnGen').and.returnValue(errorCb);
+    it('should reject the returned promise if any `ArgSpec` is not satisfied', done => {
+      let errorCb = jasmine.createSpy('errorCb').and.returnValue(Promise.reject('foo'));
+      spyOn(cli._uiUtils, 'reportAndRejectFnGen').and.returnValue(errorCb);
 
-      let args = ['--foo=bar'];
+      let rawArgs = ['--foo=bar'];
+      let argSpecs = [new ArgSpec('foo', () => false, 'error')];
 
-      cli._getAndValidateInput(args, [new ArgSpec('foo', () => true, '')]);
+      cli.
+        _getAndValidateInput(rawArgs, argSpecs).
+        catch(error => {
+          expect(error).toBe('foo');
 
-      expect(cli._uiUtils.exitWithErrorFnGen).not.toHaveBeenCalled();
-      expect(errorCb).not.toHaveBeenCalled();
+          expect(cli._uiUtils.reportAndRejectFnGen).toHaveBeenCalledWith('error');
+          expect(errorCb).toHaveBeenCalledWith();
 
-      cli._getAndValidateInput(args, [new ArgSpec('foo', () => false, 'error')]);
-
-      expect(cli._uiUtils.exitWithErrorFnGen).toHaveBeenCalledWith('error', true);
-      expect(errorCb).toHaveBeenCalled();
+          done();
+        });
     });
   });
 
@@ -315,81 +325,73 @@ describe('AbstractCli', () => {
     let input;
 
     beforeEach(() => {
-      doWorkSpy = jasmine.createSpy('doWork');
-      doWorkSpy.and.returnValue(new Promise(() => {}));
-
+      doWorkSpy = jasmine.createSpy('doWork').and.returnValue(Promise.resolve());
       input = {};
 
-      spyOn(process, 'exit');
       spyOn(cli, '_getAndValidateInput').and.returnValue(input);
-    });
-
-    it('should read and validate the input', () => {
-      let args = [];
-      cli.run(args, doWorkSpy);
-
-      expect(cli._getAndValidateInput).toHaveBeenCalledWith(args, config.argSpecs);
-    });
-
-    it('should display the usage instructions (and exit) if `--usage` is detected', () => {
-      spyOn(cli, '_displayUsage').and.callFake(() => {
-        expect(process.exit).not.toHaveBeenCalled();
-      });
-      doWorkSpy.and.callFake(() => {
-        // `process.exit` is being stubbed (so the process isn't really terminated),
-        // but it should have been called before calling `doWork()`.
-        expect(process.exit).toHaveBeenCalledWith(0);
-
-        return new Promise(() => {});
-      });
-
-      input.usage = true;
-      cli.run([], doWorkSpy);
-
-      expect(cli._displayUsage).toHaveBeenCalledWith('mockUsage');
-      expect(doWorkSpy).toHaveBeenCalled();
-    });
-
-    it('should display the instructions (and exit) if `--instructions` is detected', () => {
-      spyOn(cli, '_displayHeader');
-      spyOn(cli, '_displayInstructions').and.callFake(() => {
-        expect(cli._displayHeader).toHaveBeenCalledWith('mockInstructionsHeaderTmpl', input);
-        expect(process.exit).not.toHaveBeenCalled();
-      });
-      spyOn(cli, 'getPhases').and.returnValue([]);
-      doWorkSpy.and.callFake(() => {
-        // `process.exit` is being stubbed (so the process isn't really terminated),
-        // but it should have been called before calling `doWork()`.
-        expect(process.exit).toHaveBeenCalledWith(0);
-
-        return new Promise(() => {});
-      });
-
-      input.instructions = true;
-      cli.run([], doWorkSpy);
-
-      expect(cli._displayInstructions).toHaveBeenCalledWith([], input);
-      expect(doWorkSpy).toHaveBeenCalled();
-    });
-
-    it('should display the header', () => {
-      spyOn(cli, '_displayHeader');
-
-      cli.run([], doWorkSpy);
-
-      expect(cli._displayHeader).toHaveBeenCalledWith('mockHeaderTmpl', input);
-    });
-
-    it('should do some work (based on the input)', () => {
-      cli.run([], doWorkSpy);
-
-      expect(doWorkSpy).toHaveBeenCalledWith(input);
     });
 
     it('should return a promise', () => {
       let promise = cli.run([], doWorkSpy);
 
       expect(promise).toEqual(jasmine.any(Promise));
+    });
+
+    it('should read and validate the input', done => {
+      let args = [];
+
+      cli.
+        run(args, doWorkSpy).
+        then(() => expect(cli._getAndValidateInput).toHaveBeenCalledWith(args, config.argSpecs)).
+        then(done);
+    });
+
+    it('should display the usage instructions (and "return") if `--usage` is detected', done => {
+      spyOn(cli, '_displayUsage');
+
+      input.usage = true;
+
+      cli.
+        run([], doWorkSpy).
+        then(() => {
+          expect(cli._displayUsage).toHaveBeenCalledWith('mockUsage');
+          expect(doWorkSpy).not.toHaveBeenCalled();
+        }).
+        then(done);
+    });
+
+    it('should display the instructions (and "return") if `--instructions` is detected', done => {
+      spyOn(cli, '_displayHeader');
+      spyOn(cli, '_displayInstructions').and.callFake(() => {
+        expect(cli._displayHeader).toHaveBeenCalledWith('mockInstructionsHeaderTmpl', input);
+      });
+      spyOn(cli, 'getPhases').and.returnValue([]);
+
+      input.instructions = true;
+
+      cli.
+        run([], doWorkSpy).
+        then(() => {
+          expect(cli._displayInstructions).toHaveBeenCalledWith([], input);
+          expect(doWorkSpy).not.toHaveBeenCalled();
+        }).
+        then(done);
+    });
+
+    it('should display the header', done => {
+      spyOn(cli, '_displayHeader');
+
+      cli.
+        run([], doWorkSpy).
+        then(() => expect(cli._displayHeader).toHaveBeenCalledWith('mockHeaderTmpl', input)).
+        then(done);
+    });
+
+    it('should do some work (based on the input)', done => {
+      cli.
+        run([], doWorkSpy).
+        then(() => expect(doWorkSpy).toHaveBeenCalledWith(input)).
+        then(done);
     });
 
     it('should resolve the returned promise with the value returned by `doWork()`', done => {
@@ -401,40 +403,39 @@ describe('AbstractCli', () => {
         then(done);
     });
 
-    it('should call `_theEnd()` once the work is done (synchronously)', done => {
-      spyOn(cli, '_theEnd');
-      doWorkSpy.and.returnValue('Test');
+    it('should reject the returned promise with the error returned by `doWork()`', done => {
+      doWorkSpy.and.returnValue(Promise.reject('Test'));
 
       cli.
         run([], doWorkSpy).
-        then(() => expect(cli._theEnd).toHaveBeenCalledWith('Test')).
-        then(done);
+        catch(error => {
+          expect(error).toBe('Test');
+          done();
+        });
     });
 
-    it('should call `_theEnd()` once the work is done (asynchronously)', done => {
-      spyOn(cli, '_theEnd');
-      doWorkSpy.and.returnValue(Promise.resolve('Test'));
+    ['Test', Promise.resolve('Test')].forEach(returnValue => {
+      it('should call `_theEnd()` once the work is done', done => {
+        spyOn(cli, '_theEnd');
+        doWorkSpy.and.returnValue(returnValue);
 
-      cli.
-        run([], doWorkSpy).
-        then(() => expect(cli._theEnd).toHaveBeenCalledWith('Test')).
-        then(done);
+        cli.
+          run([], doWorkSpy).
+          then(() => expect(cli._theEnd).toHaveBeenCalledWith('Test')).
+          then(done);
+      });
     });
 
-    it('should attach an error callback to the returned promise', done => {
-      let errorCode = 'ERROR_unexpected';
-      let errorCb = jasmine.createSpy('errorCb');
-
-      spyOn(cli._uiUtils, 'exitWithErrorFnGen').and.returnValue(errorCb);
+    it('should not call `_theEnd()` on error', done => {
       spyOn(cli, '_theEnd');
       doWorkSpy.and.returnValue(Promise.reject('Test'));
 
       cli.
         run([], doWorkSpy).
-        then(() => expect(cli._theEnd).not.toHaveBeenCalled()).
-        then(() => expect(cli._uiUtils.exitWithErrorFnGen).toHaveBeenCalledWith(errorCode)).
-        then(() => expect(errorCb).toHaveBeenCalledWith('Test')).
-        then(done);
+        catch(() => {
+          expect(cli._theEnd).not.toHaveBeenCalled();
+          done();
+        });
     });
   });
 });
