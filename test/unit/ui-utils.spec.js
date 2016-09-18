@@ -170,132 +170,6 @@ describe('UiUtils', () => {
     });
   });
 
-  describe('#exitWithErrorFnGen()', () => {
-    beforeEach(() => {
-      spyOn(console, 'error');
-      spyOn(console, 'log');
-      spyOn(process, 'exit');
-
-      spyOn(cleanUper, 'hasTasks');
-      spyOn(uiUtils, 'offerToCleanUp').and.returnValue(Promise.resolve());
-    });
-
-    it('should return a function', () => {
-      let fn = uiUtils.exitWithErrorFnGen();
-
-      expect(fn).toEqual(jasmine.any(Function));
-    });
-
-    describe('- Returned function', () => {
-      it('should log to the console the specified error (if any)', () => {
-        uiUtils.exitWithErrorFnGen()('Test');
-
-        expect(console.error.calls.argsFor(0)[1]).toBe('Test');
-      });
-
-      it('should mention that clean-up might be needed', () => {
-        uiUtils.exitWithErrorFnGen()();
-        let message = console.error.calls.argsFor(0)[0].toLowerCase();
-
-        expect(message).toContain('clean-up', 'might', 'needed');
-      });
-
-      it('should mention that the operation was aborted', () => {
-        uiUtils.exitWithErrorFnGen()();
-
-        expect(console.error.calls.argsFor(0)[0]).toContain('OPERATION ABORTED');
-      });
-
-      it('should retrieve the error message based on the specified `errorOrCode`', () => {
-        errorMessages.foo = 'bar';
-        uiUtils.exitWithErrorFnGen('foo')();
-
-        expect(console.error.calls.argsFor(0)[0]).toContain('ERROR: bar');
-      });
-
-      it('should use `errorOrCode` itself if it does not match any error message', () => {
-        uiUtils.exitWithErrorFnGen('unknown code')();
-
-        expect(console.error.calls.argsFor(0)[0]).toContain('ERROR: unknown code');
-      });
-
-      it('should use a default error message if `errorOrCode` is falsy', () => {
-        uiUtils.exitWithErrorFnGen()();
-        uiUtils.exitWithErrorFnGen(null)();
-        uiUtils.exitWithErrorFnGen(false)();
-        uiUtils.exitWithErrorFnGen(0)();
-        uiUtils.exitWithErrorFnGen('')();
-
-        console.error.calls.allArgs().forEach(args => {
-          expect(args[0]).toContain('ERROR: <no error code>');
-        });
-      });
-
-      it('should offer to clean up if `cleanUper` has scheduled tasks', done => {
-        cleanUper.hasTasks.and.returnValues(false, true);
-        let fn = uiUtils.exitWithErrorFnGen();
-
-        fn();
-        expect(uiUtils.offerToCleanUp).not.toHaveBeenCalled();
-
-        fn().then(done);
-        expect(uiUtils.offerToCleanUp).toHaveBeenCalledTimes(1);
-      });
-
-      it('should not offer to clean up if `skipCleanUp` is `true`', () => {
-        cleanUper.hasTasks.and.returnValue(true);
-        let fn = uiUtils.exitWithErrorFnGen(null, true);
-
-        fn();
-        expect(uiUtils.offerToCleanUp).not.toHaveBeenCalled();
-      });
-
-      it('should exit (with error) after having cleaned up (if necessary)', done => {
-        cleanUper.hasTasks.and.returnValues(false, true);
-        let fn = uiUtils.exitWithErrorFnGen();
-
-        // No clean-up
-        fn();
-
-        expect(process.exit).toHaveBeenCalledWith(1);
-        process.exit.calls.reset();
-
-        // Clean-up
-        uiUtils.offerToCleanUp.and.callFake(() => {
-          expect(process.exit).not.toHaveBeenCalled();
-          return Promise.resolve();
-        });
-
-        fn().
-          then(() => expect(process.exit).toHaveBeenCalledWith(1)).
-          then(done);
-      });
-
-      it('should exit even if cleaning up errors', done => {
-        cleanUper.hasTasks.and.returnValue(true);
-        uiUtils.offerToCleanUp.and.callFake(() => {
-          expect(process.exit).not.toHaveBeenCalled();
-          return Promise.reject();
-        });
-
-        uiUtils.
-          exitWithErrorFnGen()().
-          then(() => expect(process.exit).toHaveBeenCalledWith(1)).
-          then(done);
-      });
-
-      it('should log the error to the console when cleaning up errors', done => {
-        cleanUper.hasTasks.and.returnValue(true);
-        uiUtils.offerToCleanUp.and.returnValue(Promise.reject('Test'));
-
-        uiUtils.
-          exitWithErrorFnGen()().
-          then(() => expect(console.error.calls.mostRecent().args[1]).toBe('Test')).
-          then(done);
-      });
-    });
-  });
-
   describe('#offerToCleanUp()', () => {
     let cleanUpPhase;
     let deferred;
@@ -364,7 +238,7 @@ describe('UiUtils', () => {
       dummyDoWork = () => new Promise(() => {});
 
       spyOn(console, 'log');
-      spyOn(uiUtils, 'exitWithErrorFnGen');
+      spyOn(uiUtils, 'reportAndRejectFnGen');
     });
 
     it('should log the phase\'s ID and description to the console', () => {
@@ -420,11 +294,11 @@ describe('UiUtils', () => {
       let phase = {error: 'foo'};
       let doWork = () => Promise.reject('bar');
       let errorCb = jasmine.createSpy('errorCb');
-      uiUtils.exitWithErrorFnGen.and.returnValue(errorCb);
+      uiUtils.reportAndRejectFnGen.and.returnValue(errorCb);
 
       uiUtils.
         phase(phase, doWork).
-        then(() => expect(uiUtils.exitWithErrorFnGen.calls.argsFor(0)[0]).toBe('foo')).
+        then(() => expect(uiUtils.reportAndRejectFnGen.calls.argsFor(0)[0]).toBe('foo')).
         then(() => expect(errorCb).toHaveBeenCalledWith('bar')).
         then(done);
     });
@@ -432,12 +306,13 @@ describe('UiUtils', () => {
     it('should fall back to a default error for the error callback', done => {
       let phase = {error: null};
       let doWork = () => Promise.reject('bar');
+      let errorCode = 'ERROR_unexpected';
       let errorCb = jasmine.createSpy('errorCb');
-      uiUtils.exitWithErrorFnGen.and.returnValue(errorCb);
+      uiUtils.reportAndRejectFnGen.and.returnValue(errorCb);
 
       uiUtils.
         phase(phase, doWork).
-        then(() => expect(uiUtils.exitWithErrorFnGen.calls.argsFor(0)[0]).toBe('ERROR_unexpected')).
+        then(() => expect(uiUtils.reportAndRejectFnGen.calls.argsFor(0)[0]).toBe(errorCode)).
         then(() => expect(errorCb).toHaveBeenCalledWith('bar')).
         then(done);
     });
@@ -447,9 +322,120 @@ describe('UiUtils', () => {
       uiUtils.phase({}, dummyDoWork, false);
       uiUtils.phase({}, dummyDoWork, true);
 
-      expect(uiUtils.exitWithErrorFnGen.calls.argsFor(0)[1]).toBeFalsy();
-      expect(uiUtils.exitWithErrorFnGen.calls.argsFor(1)[1]).toBeFalsy();
-      expect(uiUtils.exitWithErrorFnGen.calls.argsFor(2)[1]).toBeTruthy();
+      expect(uiUtils.reportAndRejectFnGen.calls.argsFor(0)[1]).toBeFalsy();
+      expect(uiUtils.reportAndRejectFnGen.calls.argsFor(1)[1]).toBeFalsy();
+      expect(uiUtils.reportAndRejectFnGen.calls.argsFor(2)[1]).toBeTruthy();
+    });
+  });
+
+  describe('#reportAndRejectFnGen()', () => {
+    beforeEach(() => {
+      spyOn(console, 'error');
+      spyOn(console, 'log');
+
+      spyOn(cleanUper, 'hasTasks');
+      spyOn(uiUtils, 'offerToCleanUp').and.returnValue(Promise.resolve());
+    });
+
+    it('should return a function', () => {
+      let fn = uiUtils.reportAndRejectFnGen();
+
+      expect(fn).toEqual(jasmine.any(Function));
+    });
+
+    describe('- Returned function', () => {
+      it('should return a promise', () => {
+        let promise = uiUtils.reportAndRejectFnGen()();
+
+        expect(promise).toEqual(jasmine.any(Promise));
+      });
+
+      it('should log to the console the specified error (if any)', () => {
+        uiUtils.reportAndRejectFnGen()('Test');
+
+        expect(console.error.calls.argsFor(0)[1]).toBe('Test');
+      });
+
+      it('should mention that clean-up might be needed', () => {
+        uiUtils.reportAndRejectFnGen()();
+        let message = console.error.calls.argsFor(0)[0].toLowerCase();
+
+        expect(message).toContain('clean-up', 'might', 'needed');
+      });
+
+      it('should mention that the operation was aborted', () => {
+        uiUtils.reportAndRejectFnGen()();
+
+        expect(console.error.calls.argsFor(0)[0]).toContain('OPERATION ABORTED');
+      });
+
+      it('should retrieve the error message based on the specified `errorOrCode`', () => {
+        errorMessages.foo = 'bar';
+        uiUtils.reportAndRejectFnGen('foo')();
+
+        expect(console.error.calls.argsFor(0)[0]).toContain('ERROR: bar');
+      });
+
+      it('should use `errorOrCode` itself if it does not match any error message', () => {
+        uiUtils.reportAndRejectFnGen('unknown code')();
+
+        expect(console.error.calls.argsFor(0)[0]).toContain('ERROR: unknown code');
+      });
+
+      it('should use a default error message if `errorOrCode` is falsy', () => {
+        uiUtils.reportAndRejectFnGen()();
+        uiUtils.reportAndRejectFnGen(null)();
+        uiUtils.reportAndRejectFnGen(false)();
+        uiUtils.reportAndRejectFnGen(0)();
+        uiUtils.reportAndRejectFnGen('')();
+
+        console.error.calls.allArgs().forEach(args => {
+          expect(args[0]).toContain('ERROR: <no error code>');
+        });
+      });
+
+      it('should offer to clean up if `cleanUper` has scheduled tasks', done => {
+        cleanUper.hasTasks.and.returnValues(false, true);
+        let fn = uiUtils.reportAndRejectFnGen();
+
+        fn();
+        expect(uiUtils.offerToCleanUp).not.toHaveBeenCalled();
+
+        fn().catch(done);
+        expect(uiUtils.offerToCleanUp).toHaveBeenCalledTimes(1);
+      });
+
+      it('should not offer to clean up if `skipCleanUp` is `true`', () => {
+        cleanUper.hasTasks.and.returnValue(true);
+        let fn = uiUtils.reportAndRejectFnGen(null, true);
+
+        fn();
+        expect(uiUtils.offerToCleanUp).not.toHaveBeenCalled();
+      });
+
+      it('should reject the returned promise after having cleaned up (if necessary)', done => {
+        cleanUper.hasTasks.and.returnValues(false, true);
+        let fn = uiUtils.reportAndRejectFnGen();
+
+        Promise.
+          all([
+            // No clean-up
+            reversePromise(fn()),
+
+            // Clean-up
+            reversePromise(fn())
+          ]).
+          then(done);
+      });
+
+      it('should log the error to the console when cleaning up errors', done => {
+        cleanUper.hasTasks.and.returnValue(true);
+        uiUtils.offerToCleanUp.and.returnValue(Promise.reject('Test'));
+
+        reversePromise(uiUtils.reportAndRejectFnGen()()).
+          then(() => expect(console.error.calls.mostRecent().args[1]).toBe('Test')).
+          then(done);
+      });
     });
   });
 
