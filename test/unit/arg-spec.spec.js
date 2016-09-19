@@ -16,23 +16,27 @@ describe('ArgSpec', () => {
 
   describe('#constructor()', () => {
     it('should initialize properties based on arguments', () => {
-      let argSpec = new ArgSpec('foo', () => 'bar', 'baz', 'qux');
+      ['qux', true, false].forEach(defaultValue => {
+        let argSpec = new ArgSpec('foo', () => 'bar', 'baz', defaultValue);
 
-      expect(argSpec.key).toBe('foo');
-      expect(argSpec.validator()).toBe('bar');
-      expect(argSpec.errorCode).toBe('baz');
-      expect(argSpec.defaultValue).toBe('qux');
+        expect(argSpec.key).toBe('foo');
+        expect(argSpec.validator()).toBe('bar');
+        expect(argSpec.errorCode).toBe('baz');
+        expect(argSpec.defaultValue).toBe(defaultValue);
+      });
     });
 
-    it('should set a default value for `defaultValue`', () => {
+    it('should set a default value for `defaultValue` (but accept `false`)', () => {
+      let falseArgSpec = new ArgSpec('', () => {}, '', false);
       let argSpecs = [
         new ArgSpec('', () => {}, ''),
         new ArgSpec('', () => {}, '', undefined),
         new ArgSpec('', () => {}, '', null),
-        new ArgSpec('', () => {}, '', false),
         new ArgSpec('', () => {}, '', 0),
         new ArgSpec('', () => {}, '', '')
       ];
+
+      expect(falseArgSpec.defaultValue).toBe(false);
 
       argSpecs.forEach(argSpec => {
         expect(argSpec.defaultValue).toBeNull();
@@ -86,6 +90,9 @@ describe('ArgSpec', () => {
 
       it('should validate `defaultValue`', () => {
         new ArgSpec('', () => {}, '');
+        new ArgSpec('', () => {}, '', null);
+        new ArgSpec('', () => {}, '', false);
+        new ArgSpec('', () => {}, '', true);
 
         expect(missingOrInvalidFieldSpy).not.toHaveBeenCalled();
 
