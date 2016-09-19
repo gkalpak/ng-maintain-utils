@@ -54,6 +54,7 @@ describe('Config', () => {
           let config2 = new Config(messages2);
           let config3 = new Config();
 
+          expect(config1.messages.errors).toBe(messages1.errors);
           expect(config1.messages.errors).toEqual(jasmine.any(Object));
           expect(config2.messages.errors).toEqual(jasmine.any(Object));
           expect(config3.messages.errors).toEqual(jasmine.any(Object));
@@ -73,6 +74,36 @@ describe('Config', () => {
           expect(config2.messages.errors.ERROR_unexpected).toEqual(jasmine.any(String));
           expect(config3.messages.errors.ERROR_unexpected).toEqual(jasmine.any(String));
           expect(config4.messages.errors.ERROR_unexpected).toEqual(jasmine.any(String));
+        });
+
+        it('should contain a `warnings` property (object)', () => {
+          let messages1 = {warnings: {}};
+          let messages2 = {};
+
+          let config1 = new Config(messages1);
+          let config2 = new Config(messages2);
+          let config3 = new Config();
+
+          expect(config1.messages.warnings).toBe(messages1.warnings);
+          expect(config1.messages.warnings).toEqual(jasmine.any(Object));
+          expect(config2.messages.warnings).toEqual(jasmine.any(Object));
+          expect(config3.messages.warnings).toEqual(jasmine.any(Object));
+        });
+
+        it('should contain an `WARN_experimentalTool` warning (string)', () => {
+          let messages1 = {warnings: {WARN_experimentalTool: 'foo'}};
+          let messages2 = {warnings: {}};
+          let messages3 = {};
+
+          let config1 = new Config(messages1);
+          let config2 = new Config(messages2);
+          let config3 = new Config(messages3);
+          let config4 = new Config();
+
+          expect(config1.messages.warnings.WARN_experimentalTool).toBe('foo');
+          expect(config2.messages.warnings.WARN_experimentalTool).toEqual(jasmine.any(String));
+          expect(config3.messages.warnings.WARN_experimentalTool).toEqual(jasmine.any(String));
+          expect(config4.messages.warnings.WARN_experimentalTool).toEqual(jasmine.any(String));
         });
       });
 
@@ -149,6 +180,22 @@ describe('Config', () => {
         new Config({errors: () => {}});
 
         expect(missingOrInvalidFieldSpy).toHaveBeenCalledWith('messages.errors');
+      });
+
+      it('should validate `messages.warnings`', () => {
+        new Config();
+
+        expect(missingOrInvalidFieldSpy).not.toHaveBeenCalled();
+
+        missingOrInvalidFieldSpy.calls.reset();
+        new Config({});
+
+        expect(missingOrInvalidFieldSpy).not.toHaveBeenCalled();
+
+        missingOrInvalidFieldSpy.calls.reset();
+        new Config({warnings: () => {}});
+
+        expect(missingOrInvalidFieldSpy).toHaveBeenCalledWith('messages.warnings');
       });
 
       it('should validate `argSpecs`', () => {
