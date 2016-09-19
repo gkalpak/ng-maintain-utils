@@ -18,11 +18,7 @@ describe('AbstractCli', () => {
   let cli;
 
   beforeEach(() => {
-    class Cli extends AbstractCli {
-      constructor() {
-        super(config);
-      }
-    }
+    class Cli extends AbstractCli {}
 
     chalkEnabled = chalk.enabled;
     chalk.enabled = false;
@@ -33,10 +29,11 @@ describe('AbstractCli', () => {
         usage: 'mockUsage',
         instructionsHeaderTmpl: 'mockInstructionsHeaderTmpl',
         headerTmpl: 'mockHeaderTmpl',
-        errors: {}
+        errors: {},
+        warnings: {}
       }
     };
-    cli = new Cli();
+    cli = new Cli(config);
 
     spyOn(console, 'log');
   });
@@ -67,15 +64,42 @@ describe('AbstractCli', () => {
     });
   });
 
+  describe('#_displayExperimentalTool()', () => {
+    it('should not display anything if no warning message is set in config', () => {
+      cli._displayExperimentalTool();
+
+      expect(console.log).not.toHaveBeenCalled();
+    });
+
+    it('should display the "experimental tool" warning (retrieved from config)', () => {
+      config.messages.warnings.WARN_experimentalTool = 'foo';
+      cli._displayExperimentalTool();
+
+      expect(console.log.calls.argsFor(0)[0]).toContain('foo');
+    });
+  });
+
   describe('#_displayHeader()', () => {
+    beforeEach(() => {
+      spyOn(cli, '_displayExperimentalTool');
+    });
+
+    it('should call `_displayExperimentalTool()` first', () => {
+      console.log.and.callFake(() => expect(cli._displayExperimentalTool).toHaveBeenCalled());
+
+      cli._displayHeader('', {});
+
+      expect(console.log).toHaveBeenCalled();
+    });
+
     it('should display the header (after interpolating the provided template with input)', () => {
       let input = {foo: 'baz', bar: 'qux'};
 
       cli._displayHeader('foo & bar', input);
       cli._displayHeader('{{ foo }} & {{ bar }}', input);
 
-      expect(console.log).toHaveBeenCalledWith('foo & bar');
-      expect(console.log).toHaveBeenCalledWith('baz & qux');
+      expect(console.log.calls.argsFor(0)[0]).toContain('foo & bar');
+      expect(console.log.calls.argsFor(1)[0]).toContain('baz & qux');
     });
   });
 
@@ -146,12 +170,24 @@ describe('AbstractCli', () => {
   });
 
   describe('#_displayUsage()', () => {
+    beforeEach(() => {
+      spyOn(cli, '_displayExperimentalTool');
+    });
+
+    it('should call `_displayExperimentalTool()` first', () => {
+      console.log.and.callFake(() => expect(cli._displayExperimentalTool).toHaveBeenCalled());
+
+      cli._displayUsage('');
+
+      expect(console.log).toHaveBeenCalled();
+    });
+
     it('should display the usage instructions', () => {
       let message = 'foo\nbar\nbaz\nqux';
 
       cli._displayUsage(message);
 
-      expect(console.log).toHaveBeenCalledWith(message);
+      expect(console.log.calls.argsFor(0)[0]).toContain(message);
     });
 
     it('should format the first line differently', () => {
