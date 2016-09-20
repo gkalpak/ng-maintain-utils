@@ -15,8 +15,9 @@ _I_ may use it for building other tools (see above). Here is a brief overview of
 
 - **`AbstractCli`:** Can serve as a base-class for creating a `Cli` object that can orchestrate the
   execution of some type of work, based on a list of "raw" command-line arguments. It can display
-  usage instructions, outline the commands that need to be executed to complete the task at hand
-  (a sort of a "dry-run"), report the beginning/end of execution, etc.
+  version info (with `--version`), show usage instructions (with `--usage`), outline the commands
+  that need to be executed to complete the task at hand (with `--instructions`) - a sort of
+  "dry-run", report the beginning/end of execution, etc.
 
   It exposes the following (public) methods:
 

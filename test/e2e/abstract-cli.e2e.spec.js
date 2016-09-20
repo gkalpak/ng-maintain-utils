@@ -14,6 +14,7 @@ describe('AbstractCli', () => {
   let chalkEnabled = chalk.enabled;
   let config;
   let cli;
+  let doWork;
 
   beforeEach(() => {
     let argSpecs = [
@@ -60,6 +61,7 @@ describe('AbstractCli', () => {
 
     config = new Config(messages, argSpecs);
     cli = new MyCli(config);
+    doWork = jasmine.createSpy('doWork');
 
     chalk.enabled = false;
 
@@ -71,10 +73,61 @@ describe('AbstractCli', () => {
     chalk.enabled = chalkEnabled;
   });
 
+  describe('--version', () => {
+    it('should display the version info (only)', done => {
+      let rawArgs = ['--version'];
+      let versionMessage = ` ${config.versionInfo.name}  v${config.versionInfo.version} `;
+      let warningMessage = config.messages.warnings.WARN_experimentalTool;
+
+      cli.
+        run(rawArgs, doWork).
+        then(() => console.log.calls.allArgs()).
+        then(args => {
+          expect(console.log).toHaveBeenCalledTimes(1);
+          expect(args[0][0]).toContain(versionMessage);
+          expect(args[0][0]).not.toContain(warningMessage);
+
+          expect(doWork).not.toHaveBeenCalled();
+        }).
+        then(done);
+    });
+
+    it('should take precedence over `--usage`', done => {
+      let rawArgs = ['--usage', '--version'];
+      let versionMessage = ` ${config.versionInfo.name}  v${config.versionInfo.version} `;
+      let usageMessage = config.messages.usage;
+
+      cli.
+        run(rawArgs, doWork).
+        then(() => console.log.calls.allArgs()).
+        then(args => {
+          expect(console.log).toHaveBeenCalledTimes(1);
+          expect(args[0][0]).toContain(versionMessage);
+          expect(args[0][0]).not.toContain(usageMessage);
+        }).
+        then(done);
+    });
+
+    it('should take precedence over `--instructions`', done => {
+      let rawArgs = ['--instructions', '--version'];
+      let versionMessage = ` ${config.versionInfo.name}  v${config.versionInfo.version} `;
+      let instructionsHeader = config.messages.instructionsHeaderTmpl = 'instructions header';
+
+      cli.
+        run(rawArgs, doWork).
+        then(() => console.log.calls.allArgs()).
+        then(args => {
+          expect(console.log).toHaveBeenCalledTimes(1);
+          expect(args[0][0]).toContain(versionMessage);
+          expect(args[0][0]).not.toContain(instructionsHeader);
+        }).
+        then(done);
+    });
+  });
+
   describe('--usage', () => {
     it('should display the usage instructions (plus ver. info and "exp. tool" warning)', done => {
       let rawArgs = ['--usage'];
-      let doWork = jasmine.createSpy('doWork');
       let versionMessage = ` ${config.versionInfo.name}  v${config.versionInfo.version} `;
       let warningMessage = config.messages.warnings.WARN_experimentalTool;
       let usageMessage = config.messages.usage;
@@ -86,13 +139,14 @@ describe('AbstractCli', () => {
           expect(args[0][0]).toContain(versionMessage);
           expect(args[1][0]).toContain(warningMessage);
           expect(args[2][0]).toContain(usageMessage);
+
+          expect(doWork).not.toHaveBeenCalled();
         }).
         then(done);
     });
 
     it('should not display the "experimental tool" warning if empty', done => {
       let rawArgs = ['--usage'];
-      let doWork = jasmine.createSpy('doWork');
       let versionMessage = ` ${config.versionInfo.name}  v${config.versionInfo.version} `;
       let warningMessage = config.messages.warnings.WARN_experimentalTool;
       let usageMessage = config.messages.usage;
@@ -107,6 +161,30 @@ describe('AbstractCli', () => {
           expect(args[0][0]).toContain(versionMessage);
           expect(args[1][0]).not.toContain(warningMessage);
           expect(args[1][0]).toContain(usageMessage);
+
+          expect(doWork).not.toHaveBeenCalled();
+        }).
+        then(done);
+    });
+
+    it('should take precedence over `--instructions`', done => {
+      let rawArgs = ['--instructions', '--usage'];
+      let versionMessage = ` ${config.versionInfo.name}  v${config.versionInfo.version} `;
+      let warningMessage = config.messages.warnings.WARN_experimentalTool;
+      let usageMessage = config.messages.usage;
+      let instructionsHeader = config.messages.instructionsHeaderTmpl = 'instructions header';
+
+      cli.
+        run(rawArgs, doWork).
+        then(() => console.log.calls.allArgs()).
+        then(args => {
+          expect(console.log).toHaveBeenCalledTimes(3);
+          expect(args[0][0]).toContain(versionMessage);
+          expect(args[0][0]).not.toContain(instructionsHeader);
+          expect(args[1][0]).toContain(warningMessage);
+          expect(args[1][0]).not.toContain(instructionsHeader);
+          expect(args[2][0]).toContain(usageMessage);
+          expect(args[2][0]).not.toContain(instructionsHeader);
         }).
         then(done);
     });
@@ -116,7 +194,6 @@ describe('AbstractCli', () => {
     it('should display the commands that need to be run (plus ver. info and "exp. tool" warning)',
       done => {
         let rawArgs = ['--foo=foooo', 'zbabz', '--instructions'];
-        let doWork = jasmine.createSpy('doWork');
         let versionMessage = ` ${config.versionInfo.name}  v${config.versionInfo.version} `;
         let warningMessage = config.messages.warnings.WARN_experimentalTool;
         let idx = -1;
@@ -138,6 +215,8 @@ describe('AbstractCli', () => {
             expect(args[  idx][0]).toContain('PHASE Five - The extra mile');
             expect(args[++idx][0]).toContain('- Do this better (with zbabz)');
             expect(args[++idx][0]).toContain('- Do that better (with null)');
+
+            expect(doWork).not.toHaveBeenCalled();
           }).
           then(done);
       }
@@ -145,7 +224,6 @@ describe('AbstractCli', () => {
 
     it('should not display the "experimental tool" warning if empty', done => {
       let rawArgs = ['--foo=foooo', 'zbabz', '--instructions'];
-      let doWork = jasmine.createSpy('doWork');
       let versionMessage = ` ${config.versionInfo.name}  v${config.versionInfo.version} `;
       let warningMessage = config.messages.warnings.WARN_experimentalTool;
 
@@ -164,7 +242,6 @@ describe('AbstractCli', () => {
 
     it('should reject if any argument is invalid', done => {
       let rawArgs = ['--foo=bar', '--instructions'];
-      let doWork = jasmine.createSpy('doWork');
       let idx = -1;
 
       cli.
@@ -178,6 +255,8 @@ describe('AbstractCli', () => {
           expect(args[  idx][0]).toContain('Clean-up might or might not be needed');
           expect(args[  idx][0]).toContain('OPERATION ABORTED');
 
+          expect(doWork).not.toHaveBeenCalled();
+
           done();
         });
     });
@@ -186,7 +265,7 @@ describe('AbstractCli', () => {
   describe('--no-usage --no-instructions', () => {
     it('should do some work with the input and return the result', done => {
       let rawArgs = ['--foo=foof', 'zzaabb'];
-      let doWork = jasmine.createSpy('doWork').and.returnValue(42);
+      doWork.and.returnValue(42);
 
       cli.
         run(rawArgs, doWork).
@@ -202,10 +281,11 @@ describe('AbstractCli', () => {
 
     it('should decorate the actual work with user-engaging headers/footers', done => {
       let rawArgs = ['--foo=foof', 'zzaabb'];
-      let doWork = () => console.log('Hack...hack...hack...');
       let versionMessage = ` ${config.versionInfo.name}  v${config.versionInfo.version} `;
       let warningMessage = config.messages.warnings.WARN_experimentalTool;
       let idx = -1;
+
+      doWork = () => console.log('Hack...hack...hack...');
 
       cli.
         run(rawArgs, doWork).
@@ -222,7 +302,7 @@ describe('AbstractCli', () => {
 
     it('should reject when something goes wrong (and not report success)', done => {
       let rawArgs = ['--foo=foof', 'zzaabb'];
-      let doWork = () => { throw 'Pwned'; };
+      doWork = () => { throw 'Pwned'; };
 
       cli.
         run(rawArgs, doWork).
@@ -239,7 +319,6 @@ describe('AbstractCli', () => {
 
     it('should reject if any argument is invalid (and not do any work)', done => {
       let rawArgs = ['bbaazz'];
-      let doWork = jasmine.createSpy('doWork');
       let idx = -1;
 
       cli.
@@ -326,7 +405,7 @@ describe('AbstractCli', () => {
 
       it('should work as expected when all goes well', done => {
         let input;
-        let doWork = inp => {
+        doWork = inp => {
           input = inp;
           let phases = cli.getPhases();
           let resolve = Promise.resolve.bind(Promise);
@@ -377,7 +456,7 @@ describe('AbstractCli', () => {
           spyOn(process.stdout, 'write');
 
           let input;
-          let doWork = inp => {
+          doWork = inp => {
             input = inp;
             let phases = cli.getPhases();
             let resolve = Promise.resolve.bind(Promise);

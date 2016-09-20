@@ -262,6 +262,23 @@ describe('AbstractCli', () => {
         then(done);
     });
 
+    it('should read the `version` argument', done => {
+      let promises = [
+        cli._getAndValidateInput(['foo', 'bar'], []),
+        cli._getAndValidateInput(['foo', '--no-version', 'bar'], []),
+        cli._getAndValidateInput(['foo', '--version', 'bar'], [])
+      ];
+
+      Promise.
+        all(promises).
+        then(inputs => {
+          expect(inputs[0].version).toBe(false);
+          expect(inputs[1].version).toBe(false);
+          expect(inputs[2].version).toBe(true);
+        }).
+        then(done);
+    });
+
     it('should read the `usage` argument', done => {
       let promises = [
         cli._getAndValidateInput(['foo', 'bar'], []),
@@ -318,6 +335,31 @@ describe('AbstractCli', () => {
         then(done);
     });
 
+    it('should not apply `argSpecs` if `--version` is detected', done => {
+      spyOn(ArgSpec.prototype, 'applyOn').and.callThrough();
+
+      let rawArgs = ['foo', 'bar', '--baz=qux', '--version'];
+      let argSpecs = [
+        new ArgSpec.Unnamed(0, 'foo', () => true, ''),
+        new ArgSpec.Unnamed(1, 'bar', () => true, ''),
+        new ArgSpec('baz', () => true, ''),
+        new ArgSpec('qux', () => true, '', 'default')
+      ];
+
+      cli.
+        _getAndValidateInput(rawArgs, argSpecs).
+        then(input => {
+          expect(ArgSpec.prototype.applyOn).not.toHaveBeenCalled();
+          expect(input).not.toEqual(jasmine.objectContaining({
+            foo: 'foo',
+            bar: 'bar',
+            baz: 'qux',
+            qux: 'default'
+          }));
+        }).
+        then(done);
+    });
+
     it('should not apply `argSpecs` if `--usage` is detected', done => {
       spyOn(ArgSpec.prototype, 'applyOn').and.callThrough();
 
@@ -334,6 +376,28 @@ describe('AbstractCli', () => {
         then(input => {
           expect(ArgSpec.prototype.applyOn).not.toHaveBeenCalled();
           expect(input).not.toEqual(jasmine.objectContaining({
+            foo: 'foo',
+            bar: 'bar',
+            baz: 'qux',
+            qux: 'default'
+          }));
+        }).
+        then(done);
+    });
+
+    it('should apply `argSpecs` if `--instructions` is detected', done => {
+      let rawArgs = ['foo', 'bar', '--baz=qux', '--instructions'];
+      let argSpecs = [
+        new ArgSpec.Unnamed(0, 'foo', () => true, ''),
+        new ArgSpec.Unnamed(1, 'bar', () => true, ''),
+        new ArgSpec('baz', () => true, ''),
+        new ArgSpec('qux', () => true, '', 'default')
+      ];
+
+      cli.
+        _getAndValidateInput(rawArgs, argSpecs).
+        then(input => {
+          expect(input).toEqual(jasmine.objectContaining({
             foo: 'foo',
             bar: 'bar',
             baz: 'qux',
@@ -418,6 +482,20 @@ describe('AbstractCli', () => {
       cli.
         run(args, doWorkSpy).
         then(() => expect(cli._getAndValidateInput).toHaveBeenCalledWith(args, config.argSpecs)).
+        then(done);
+    });
+
+    it('should display the version info (and "return") if `--version` is detected', done => {
+      spyOn(cli, '_displayVersionInfo');
+
+      input.version = true;
+
+      cli.
+        run([], doWorkSpy).
+        then(() => {
+          expect(cli._displayVersionInfo).toHaveBeenCalledWith();
+          expect(doWorkSpy).not.toHaveBeenCalled();
+        }).
         then(done);
     });
 
