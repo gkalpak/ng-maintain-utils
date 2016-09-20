@@ -2,9 +2,11 @@
 
 // Imports
 let fs = require('fs');
-let minimist = require('minimist');
 let path = require('path');
 let spawn = require('child_process').spawn;
+
+// Imports - Local
+let Utils = require('../lib/utils');
 
 // Exports
 module.exports = runTests;
@@ -14,7 +16,7 @@ _main(process.argv.slice(2));
 
 // Functions - Definitions
 function _main(args) {
-  args = minimist(args);
+  args = (new Utils).parseArgs(args);
 
   let testType = args.type || '';
   let watch = args.watch;
