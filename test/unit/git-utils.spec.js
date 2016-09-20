@@ -417,7 +417,11 @@ describe('GitUtils', () => {
       });
 
       it('should be rejected if unable to remove the temoprary file', done => {
-        gitUtils.unlinkAsPromised.and.returnValue(Promise.reject('test'));
+        // Avoid `UnhandledPromiseRejectionWarning`, `PromiseRejectionHandledWarning`,
+        // because of handling the rejection asynchronously (in Node.js v6.6.0).
+        let rejection = Promise.reject('test');
+        rejection.catch(() => {});
+        gitUtils.unlinkAsPromised.and.returnValue(rejection);
 
         gitUtils.
           setLastCommitMessage('foo').
@@ -432,7 +436,11 @@ describe('GitUtils', () => {
 
       it('should be rejected with the original error even if unable to remove the temporary file',
         done => {
-          gitUtils.unlinkAsPromised.and.returnValue(Promise.reject('test'));
+          // Avoid `UnhandledPromiseRejectionWarning`, `PromiseRejectionHandledWarning`,
+          // because of handling the rejection asynchronously (in Node.js v6.6.0).
+          let rejection = Promise.reject('test');
+          rejection.catch(() => {});
+          gitUtils.unlinkAsPromised.and.returnValue(rejection);
 
           gitUtils.
             setLastCommitMessage('foo').

@@ -345,49 +345,49 @@ describe('UiUtils', () => {
 
     describe('- Returned function', () => {
       it('should return a promise', () => {
-        let promise = uiUtils.reportAndRejectFnGen()();
+        let promise = reportAndReject();
 
         expect(promise).toEqual(jasmine.any(Promise));
       });
 
       it('should log to the console the specified error (if any)', () => {
-        uiUtils.reportAndRejectFnGen()('Test');
+        reportAndReject(null, null, 'Test');
 
         expect(console.error.calls.argsFor(0)[1]).toBe('Test');
       });
 
       it('should mention that clean-up might be needed', () => {
-        uiUtils.reportAndRejectFnGen()();
+        reportAndReject();
         let message = console.error.calls.argsFor(0)[0].toLowerCase();
 
         expect(message).toContain('clean-up', 'might', 'needed');
       });
 
       it('should mention that the operation was aborted', () => {
-        uiUtils.reportAndRejectFnGen()();
+        reportAndReject();
 
         expect(console.error.calls.argsFor(0)[0]).toContain('OPERATION ABORTED');
       });
 
       it('should retrieve the error message based on the specified `errorOrCode`', () => {
         errorMessages.foo = 'bar';
-        uiUtils.reportAndRejectFnGen('foo')();
+        reportAndReject('foo');
 
         expect(console.error.calls.argsFor(0)[0]).toContain('ERROR: bar');
       });
 
       it('should use `errorOrCode` itself if it does not match any error message', () => {
-        uiUtils.reportAndRejectFnGen('unknown code')();
+        reportAndReject('unknown code');
 
         expect(console.error.calls.argsFor(0)[0]).toContain('ERROR: unknown code');
       });
 
       it('should use a default error message if `errorOrCode` is falsy', () => {
-        uiUtils.reportAndRejectFnGen()();
-        uiUtils.reportAndRejectFnGen(null)();
-        uiUtils.reportAndRejectFnGen(false)();
-        uiUtils.reportAndRejectFnGen(0)();
-        uiUtils.reportAndRejectFnGen('')();
+        reportAndReject();
+        reportAndReject(null);
+        reportAndReject(false);
+        reportAndReject(0);
+        reportAndReject('');
 
         console.error.calls.allArgs().forEach(args => {
           expect(args[0]).toContain('ERROR: <no error code>');
@@ -398,7 +398,7 @@ describe('UiUtils', () => {
         cleanUper.hasTasks.and.returnValues(false, true);
         let fn = uiUtils.reportAndRejectFnGen();
 
-        fn();
+        fn().catch(() => {});
         expect(uiUtils.offerToCleanUp).not.toHaveBeenCalled();
 
         fn().catch(done);
@@ -407,9 +407,8 @@ describe('UiUtils', () => {
 
       it('should not offer to clean up if `skipCleanUp` is `true`', () => {
         cleanUper.hasTasks.and.returnValue(true);
-        let fn = uiUtils.reportAndRejectFnGen(null, true);
+        reportAndReject(null, true);
 
-        fn();
         expect(uiUtils.offerToCleanUp).not.toHaveBeenCalled();
       });
 
@@ -437,6 +436,16 @@ describe('UiUtils', () => {
           then(done);
       });
     });
+
+    // Helpers
+    function reportAndReject(errorOrCode, skipCleanUp, extraError) {
+      let promise = uiUtils.reportAndRejectFnGen(errorOrCode, skipCleanUp)(extraError);
+
+      // Avoid `UnhandledPromiseRejectionWarning` (in Node.js v6.6.0).
+      promise.catch(() => {});
+
+      return promise;
+    }
   });
 
   // Helpers
