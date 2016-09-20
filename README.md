@@ -13,7 +13,7 @@ _You_ should generally not use it. You would use tools built on top of it, for e
 
 _I_ may use it for building other tools (see above). Here is a brief overview of what's in the box:
 
-- **`AbstractCli`:** Can serve as a base-class for creating a `Cli` object that can orcherstrate the
+- **`AbstractCli`:** Can serve as a base-class for creating a `Cli` object that can orchestrate the
   execution of some type of work, based on a list of "raw" command-line arguments. It can display
   usage instructions, outline the commands that need to be executed to complete the task at hand
   (a sort of a "dry-run"), report the beginning/end of execution, etc.
@@ -31,6 +31,7 @@ _I_ may use it for building other tools (see above). Here is a brief overview of
   - `_displayHeader(headerTmpl: string, input: {[key: string]: string}): void`
   - `_displayInstructions(phases: Phase[], input: {[key: string]: string}): void`
   - `_displayUsage(usageMessage: string): void`
+  - `_displayVersionInfo(): void`
   - `_getAndValidateInput(rawArgs: string[], argSpecs: ArgSpec[]): Promise<{[key: string]: string}>`
   - `_theEnd(value: any): any`
 

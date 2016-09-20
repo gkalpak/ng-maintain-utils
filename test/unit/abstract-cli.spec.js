@@ -25,12 +25,17 @@ describe('AbstractCli', () => {
 
     config = {
       argSpecs: [],
+      defaults: {},
       messages: {
         usage: 'mockUsage',
         instructionsHeaderTmpl: 'mockInstructionsHeaderTmpl',
         headerTmpl: 'mockHeaderTmpl',
         errors: {},
         warnings: {}
+      },
+      versionInfo: {
+        name: 'mockName',
+        version: 'mockVersion'
       }
     };
     cli = new Cli(config);
@@ -82,10 +87,22 @@ describe('AbstractCli', () => {
   describe('#_displayHeader()', () => {
     beforeEach(() => {
       spyOn(cli, '_displayExperimentalTool');
+      spyOn(cli, '_displayVersionInfo');
     });
 
-    it('should call `_displayExperimentalTool()` first', () => {
+    it('should call `_displayVersionInfo()` first', () => {
+      console.log.and.callFake(() => expect(cli._displayVersionInfo).toHaveBeenCalled());
+
+      cli._displayHeader('', {});
+
+      expect(console.log).toHaveBeenCalled();
+    });
+
+    it('should call `_displayExperimentalTool()` second', () => {
       console.log.and.callFake(() => expect(cli._displayExperimentalTool).toHaveBeenCalled());
+      cli._displayExperimentalTool.and.callFake(() => {
+        expect(cli._displayVersionInfo).toHaveBeenCalled();
+      });
 
       cli._displayHeader('', {});
 
@@ -172,10 +189,22 @@ describe('AbstractCli', () => {
   describe('#_displayUsage()', () => {
     beforeEach(() => {
       spyOn(cli, '_displayExperimentalTool');
+      spyOn(cli, '_displayVersionInfo');
     });
 
-    it('should call `_displayExperimentalTool()` first', () => {
+    it('should call `_displayVersionInfo()` first', () => {
+      console.log.and.callFake(() => expect(cli._displayVersionInfo).toHaveBeenCalled());
+
+      cli._displayUsage('');
+
+      expect(console.log).toHaveBeenCalled();
+    });
+
+    it('should call `_displayExperimentalTool()` second', () => {
       console.log.and.callFake(() => expect(cli._displayExperimentalTool).toHaveBeenCalled());
+      cli._displayExperimentalTool.and.callFake(() => {
+        expect(cli._displayVersionInfo).toHaveBeenCalled();
+      });
 
       cli._displayUsage('');
 
@@ -202,6 +231,16 @@ describe('AbstractCli', () => {
       expect(logged).not.toContain(message);
       expect(logged).toContain(lines[0]);
       expect(logged).toContain(lines.slice(1).join('\n'));
+    });
+  });
+
+  describe('#_displayVersionInfo()', () => {
+    it('should display the version info (retrieved from config)', () => {
+      config.versionInfo = {name: 'foo', version: '1.2.3'};
+      cli._displayVersionInfo();
+
+      expect(console.log.calls.argsFor(0)[0]).toContain('foo');
+      expect(console.log.calls.argsFor(0)[0]).toContain('1.2.3');
     });
   });
 

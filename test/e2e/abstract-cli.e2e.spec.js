@@ -72,9 +72,10 @@ describe('AbstractCli', () => {
   });
 
   describe('--usage', () => {
-    it('should display the usage instructions (and "experimental tool" warning)', done => {
+    it('should display the usage instructions (plus ver. info and "exp. tool" warning)', done => {
       let rawArgs = ['--usage'];
       let doWork = jasmine.createSpy('doWork');
+      let versionMessage = ` ${config.versionInfo.name}  v${config.versionInfo.version} `;
       let warningMessage = config.messages.warnings.WARN_experimentalTool;
       let usageMessage = config.messages.usage;
 
@@ -82,8 +83,9 @@ describe('AbstractCli', () => {
         run(rawArgs, doWork).
         then(() => console.log.calls.allArgs()).
         then(args => {
-          expect(args[0][0]).toContain(warningMessage);
-          expect(args[1][0]).toContain(usageMessage);
+          expect(args[0][0]).toContain(versionMessage);
+          expect(args[1][0]).toContain(warningMessage);
+          expect(args[2][0]).toContain(usageMessage);
         }).
         then(done);
     });
@@ -91,6 +93,7 @@ describe('AbstractCli', () => {
     it('should not display the "experimental tool" warning if empty', done => {
       let rawArgs = ['--usage'];
       let doWork = jasmine.createSpy('doWork');
+      let versionMessage = ` ${config.versionInfo.name}  v${config.versionInfo.version} `;
       let warningMessage = config.messages.warnings.WARN_experimentalTool;
       let usageMessage = config.messages.usage;
 
@@ -100,19 +103,21 @@ describe('AbstractCli', () => {
         run(rawArgs, doWork).
         then(() => console.log.calls.allArgs()).
         then(args => {
-          expect(console.log).toHaveBeenCalledTimes(1);
-          expect(args[0][0]).not.toContain(warningMessage);
-          expect(args[0][0]).toContain(usageMessage);
+          expect(console.log).toHaveBeenCalledTimes(2);
+          expect(args[0][0]).toContain(versionMessage);
+          expect(args[1][0]).not.toContain(warningMessage);
+          expect(args[1][0]).toContain(usageMessage);
         }).
         then(done);
     });
   });
 
   describe('--instructions', () => {
-    it('should display the commands that need to be run (and "experimental tool" warning)',
+    it('should display the commands that need to be run (plus ver. info and "exp. tool" warning)',
       done => {
         let rawArgs = ['--foo=foooo', 'zbabz', '--instructions'];
         let doWork = jasmine.createSpy('doWork');
+        let versionMessage = ` ${config.versionInfo.name}  v${config.versionInfo.version} `;
         let warningMessage = config.messages.warnings.WARN_experimentalTool;
         let idx = -1;
 
@@ -120,6 +125,7 @@ describe('AbstractCli', () => {
           run(rawArgs, doWork).
           then(() => console.log.calls.allArgs()).
           then(args => {
+            expect(args[++idx][0]).toContain(versionMessage);
             expect(args[++idx][0]).toContain(warningMessage);
             expect(args[++idx][0]).toContain('Instructions for foooo, rab, zbabz and null');
             expect(args[++idx][0]).toContain('PHASE One - The beginning');
@@ -140,6 +146,7 @@ describe('AbstractCli', () => {
     it('should not display the "experimental tool" warning if empty', done => {
       let rawArgs = ['--foo=foooo', 'zbabz', '--instructions'];
       let doWork = jasmine.createSpy('doWork');
+      let versionMessage = ` ${config.versionInfo.name}  v${config.versionInfo.version} `;
       let warningMessage = config.messages.warnings.WARN_experimentalTool;
 
       config.messages.warnings.WARN_experimentalTool = '';
@@ -148,9 +155,9 @@ describe('AbstractCli', () => {
         run(rawArgs, doWork).
         then(() => console.log.calls.allArgs()).
         then(args => {
-          expect(args.length).toBeGreaterThan(0);
-          expect(args[0][0]).not.toContain(warningMessage);
-          expect(args[0][0]).toContain('Instructions for foooo, rab, zbabz and null');
+          expect(args[0][0]).toContain(versionMessage);
+          expect(args[1][0]).not.toContain(warningMessage);
+          expect(args[1][0]).toContain('Instructions for foooo, rab, zbabz and null');
         }).
         then(done);
     });
@@ -196,13 +203,16 @@ describe('AbstractCli', () => {
     it('should decorate the actual work with user-engaging headers/footers', done => {
       let rawArgs = ['--foo=foof', 'zzaabb'];
       let doWork = () => console.log('Hack...hack...hack...');
+      let versionMessage = ` ${config.versionInfo.name}  v${config.versionInfo.version} `;
+      let warningMessage = config.messages.warnings.WARN_experimentalTool;
       let idx = -1;
 
       cli.
         run(rawArgs, doWork).
         then(() => console.log.calls.allArgs()).
         then(args => {
-          expect(args[++idx][0]).toContain(config.messages.warnings.WARN_experimentalTool);
+          expect(args[++idx][0]).toContain(versionMessage);
+          expect(args[++idx][0]).toContain(warningMessage);
           expect(args[++idx][0]).toContain('Using foof, rab, zzaabb and null');
           expect(args[++idx][0]).toContain('Hack...hack...hack...');
           expect(args[++idx][0]).toContain('OPERATION COMPLETED SUCCESSFULLY');
@@ -328,12 +338,16 @@ describe('AbstractCli', () => {
             then(() => cli._uiUtils.phase(phases[3], () => resolve(phaseWorkFns[3](inp.qux))));
         };
 
+        let versionMessage = ` ${config.versionInfo.name}  v${config.versionInfo.version} `;
+        let warningMessage = config.messages.warnings.WARN_experimentalTool;
+
         cli.
           run(['zzzab', 'qux'], doWork).
           then(() => console.log.calls.allArgs()).
           then(args => {
             let messages = [
-              config.messages.warnings.WARN_experimentalTool,
+              versionMessage,
+              warningMessage,
               cli._utils.interpolate(config.messages.headerTmpl, input),
               'PHASE One - The beginning',
               'Using oof to: Do this (with oof), Do that (with oof)...',
@@ -376,13 +390,17 @@ describe('AbstractCli', () => {
               then(() => cli._uiUtils.phase(phases[3], () => resolve(phaseWorkFns[3](inp.qux))));
           };
 
+          let versionMessage = ` ${config.versionInfo.name}  v${config.versionInfo.version} `;
+          let warningMessage = config.messages.warnings.WARN_experimentalTool;
+
           cli.
             run(['zzzab', 'qux'], doWork).
             catch(() => {
               let errArgs = console.error.calls.allArgs();
               let logArgs = console.log.calls.allArgs();
               let logMessages = [
-                config.messages.warnings.WARN_experimentalTool,
+                versionMessage,
+                warningMessage,
                 cli._utils.interpolate(config.messages.headerTmpl, input),
                 'PHASE One - The beginning',
                 'Using oof to: Do this (with oof), Do that (with oof)...',
@@ -401,7 +419,9 @@ describe('AbstractCli', () => {
               ]);
 
               expect(console.log).toHaveBeenCalledTimes(logMessages.length);
-              logMessages.forEach((message, idx) => expect(logArgs[idx][0]).toContain(message));
+              logMessages.forEach((message, idx) => {
+                [].concat(message).forEach(msg => expect(logArgs[idx][0]).toContain(msg));
+              });
 
               expect(console.error).toHaveBeenCalledTimes(2);
               expect(errArgs[0][1]).toContain('You should not have done that');
