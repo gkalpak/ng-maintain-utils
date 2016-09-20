@@ -1,9 +1,13 @@
 'use strict';
 
+// Imports
+let path = require('path');
+
 // Imports - Local
 let AbstractValidatable = require('../../lib/abstract-validatable');
 let ArgSpec = require('../../lib/arg-spec');
 let Config = require('../../lib/config');
+let pkg = require('../../package.json');
 
 // Tests
 describe('Config', () => {
@@ -21,6 +25,7 @@ describe('Config', () => {
       expect(config.messages).toBeDefined();
       expect(config.argSpecs).toBeDefined();
       expect(config.defaults).toBeDefined();
+      expect(config.versionInfo).toBeDefined();
     });
 
     describe('- Field initialization', () => {
@@ -146,6 +151,61 @@ describe('Config', () => {
           });
         });
       });
+
+      describe('#versionInfo', () => {
+        it('should be initialized to an object', () => {
+          let config1 = new Config({}, []);
+          let config2 = new Config({});
+          let config3 = new Config();
+
+          expect(config1.versionInfo).toEqual(jasmine.any(Object));
+          expect(config2.versionInfo).toEqual(jasmine.any(Object));
+          expect(config3.versionInfo).toEqual(jasmine.any(Object));
+        });
+
+        it('should contain `name` (string) and `version` (string)', () => {
+          let config = new Config();
+
+          expect(config.versionInfo).toEqual({
+            name: jasmine.any(String),
+            version: jasmine.any(String)
+          });
+          expect(config.versionInfo.name).toBe(pkg.name);
+          expect(config.versionInfo.version).toBe(pkg.version);
+        });
+
+        it('should fall back to default values if necessary', () => {
+          spyOn(path, 'join').and.returnValue('foo');
+
+          let config = new Config();
+
+          expect(config.versionInfo.name).toBe('N/A');
+          expect(config.versionInfo.version).toBe('N/A');
+        });
+
+        it('should load `package.json` from the main directory', () => {
+          spyOn(path, 'dirname').and.callThrough();
+
+          new Config();
+
+          expect(path.dirname).toHaveBeenCalledWith(require.main.filename);
+        });
+
+        it('should traverse upwards from the main directory (in search of `package.json`)', () => {
+          spyOn(path, 'join').and.returnValue('foo');
+
+          new Config();
+          let args = path.join.calls.allArgs();
+          let dir = path.dirname(require.main.filename);
+
+          expect(args.length).toBeGreaterThan(1);
+
+          for (let i = 0; i < args.length; i++) {
+            expect(args[i][0]).toBe(dir);
+            dir = path.dirname(dir);
+          }
+        });
+      });
     });
 
     describe('- Field validation', () => {
@@ -236,6 +296,35 @@ describe('Config', () => {
         new Config();
 
         expect(missingOrInvalidFieldSpy).toHaveBeenCalledWith('defaults');
+      });
+
+      it('should validate `versionInfo`', () => {
+        spyOn(Config.prototype, '_initializeVersionInfo');
+
+        [
+          null,
+          'test',
+          () => {},
+          {},
+          {name: {}},
+          {name: 'foo'},
+          {version: 123},
+          {version: '1.2.3'}
+        ].forEach(value => {
+          Config.prototype._initializeVersionInfo.and.returnValue(value);
+          missingOrInvalidFieldSpy.calls.reset();
+
+          new Config();
+
+          expect(missingOrInvalidFieldSpy).toHaveBeenCalledWith('versionInfo');
+        });
+
+        Config.prototype._initializeVersionInfo.and.returnValue({name: 'foo', version: '1.2.3'});
+        missingOrInvalidFieldSpy.calls.reset();
+
+        new Config();
+
+        expect(missingOrInvalidFieldSpy).not.toHaveBeenCalled();
       });
     });
   });

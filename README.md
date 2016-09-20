@@ -88,6 +88,9 @@ _I_ may use it for building other tools (see above). Here is a brief overview of
       - `ERROR_unexpected`
     - `warnings`:
       - `WARN_experimentalTool`
+  - `versionInfo`: A `{name: string, version: string}` map with values retrieved from the main
+    module's `package.json` (i.e. the first `package.json` to be found starting from the main file's
+    directory and moving upwards).
   
   Requires:
     - _messages_: `{[messageKey: string]: string}`
