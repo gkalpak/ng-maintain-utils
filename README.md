@@ -2,13 +2,14 @@
 
 ## Description
 
-A private collection of utilities for developing tools to help maintain AngularJS-related GitHub
+A private collection of utilities for developing tools to help maintain (AngularJS-related) GitHub
 repositories.
 
 ## Usage
 
 _You_ should generally not use it. You would use tools built on top of it, for example:
 
+- [ng-cla-check][ng-cla-check]
 - [ng-pr-merge][ng-pr-merge]
 
 _I_ may use it for building other tools (see above). Here is a brief overview of what's in the box:
@@ -184,4 +185,5 @@ The following test-types/modes are available:
 
 [build-status]: https://travis-ci.org/gkalpak/ng-maintain-utils
 [build-status-image]: https://travis-ci.org/gkalpak/ng-maintain-utils.svg?branch=master
+[ng-cla-check]: https://www.npmjs.com/package/@gkalpak/ng-cla-check
 [ng-pr-merge]: https://www.npmjs.com/package/@gkalpak/ng-pr-merge
