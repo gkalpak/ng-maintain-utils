@@ -1,7 +1,7 @@
 {
   "name": "@gkalpak/ng-maintain-utils",
   "version": "0.0.4",
-  "description": "A private collection of utilities for developing tools to help maintain AngularJS-related GitHub repositories.",
+  "description": "A private collection of utilities for developing tools to help maintain (AngularJS-related) GitHub repositories.",
   "keywords": [
     "Private",
     "Utility",
