@@ -300,14 +300,14 @@ describe('AbstractCli', () => {
         then(done);
     });
 
-    it('should reject when something goes wrong (and not report success)', done => {
+    it('should reject (undefined) when something goes wrong (and not report success)', done => {
       let rawArgs = ['--foo=foof', 'zzaabb'];
       doWork = () => { throw 'Pwned'; };
 
       cli.
         run(rawArgs, doWork).
         catch(error => {
-          expect(error).toBe('Pwned');
+          expect(error).toBe(undefined);
 
           console.log.calls.allArgs().forEach(args => {
             expect(args[0]).not.toContain('OPERATION COMPLETED SUCCESSFULLY');

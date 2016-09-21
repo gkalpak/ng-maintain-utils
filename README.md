@@ -35,7 +35,8 @@ _I_ may use it for building other tools (see above). Here is a brief overview of
   - `_displayUsage(usageMessage: string): void`
   - `_displayVersionInfo(): void`
   - `_getAndValidateInput(rawArgs: string[], argSpecs: ArgSpec[]): Promise<{[key: string]: string}>`
-  - `_theEnd(value: any): any`
+  - `_theHappyEnd<T>(value: T): T`
+  - `_theUnhappyEnd(err: any): Promise<any>`
 
   Requires:
     - _config_: `Config`

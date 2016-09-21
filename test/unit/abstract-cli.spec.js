@@ -427,13 +427,13 @@ describe('AbstractCli', () => {
     });
   });
 
-  describe('#_theEnd()', () => {
+  describe('#_theHappyEnd()', () => {
     it('should display "OPERATION COMPLETED SUCCESSFULLY"', () => {
-      cli._theEnd();
-      cli._theEnd(null);
-      cli._theEnd(false);
-      cli._theEnd(true);
-      cli._theEnd('foo');
+      cli._theHappyEnd();
+      cli._theHappyEnd(null);
+      cli._theHappyEnd(false);
+      cli._theHappyEnd(true);
+      cli._theHappyEnd('foo');
 
       expect(console.log).toHaveBeenCalledTimes(5);
       expect(console.log.calls.argsFor(0)[0]).toContain('OPERATION COMPLETED SUCCESSFULLY');
@@ -446,7 +446,50 @@ describe('AbstractCli', () => {
     it('should forward the passed-in value', () => {
       let value = {};
 
-      expect(cli._theEnd(value)).toBe(value);
+      expect(cli._theHappyEnd(value)).toBe(value);
+    });
+  });
+
+  describe('#_theUnhappyEnd()', () => {
+    let errorCb;
+
+    beforeEach(() => {
+      errorCb = jasmine.createSpy('errorCb').and.returnValue(Promise.reject());
+
+      spyOn(cli._uiUtils, 'reportAndRejectFnGen').and.returnValue(errorCb);
+    });
+
+    it('should not "reportAndReject" if the rejection is empty (just reject)', done => {
+      cli.
+        _theUnhappyEnd().
+        catch(() => {
+          expect(errorCb).not.toHaveBeenCalled();
+
+          done();
+        });
+    });
+
+    it('should "reportAndReject" if the rejection is non-empty', done => {
+      cli.
+        _theUnhappyEnd('foo').
+        catch(() => {
+          expect(cli._uiUtils.reportAndRejectFnGen).toHaveBeenCalledWith('ERROR_unexpected');
+          expect(errorCb).toHaveBeenCalledWith('foo');
+
+          done();
+        });
+    });
+
+    it('should reject with the value returned by "reportAndReject"', done => {
+      errorCb.and.returnValue(Promise.reject('foo'));
+
+      cli.
+        _theUnhappyEnd(true).
+        catch(error => {
+          expect(error).toBe('foo');
+
+          done();
+        });
     });
   });
 
@@ -556,37 +599,43 @@ describe('AbstractCli', () => {
         then(done);
     });
 
-    it('should reject the returned promise with the error returned by `doWork()`', done => {
+    it('should reject the returned promise with undefined', done => {
+      spyOn(console, 'error');
       doWorkSpy.and.returnValue(Promise.reject('Test'));
 
       cli.
         run([], doWorkSpy).
         catch(error => {
-          expect(error).toBe('Test');
+          expect(error).toBeUndefined();
           done();
         });
     });
 
     ['Test', Promise.resolve('Test')].forEach(returnValue => {
-      it('should call `_theEnd()` once the work is done', done => {
-        spyOn(cli, '_theEnd');
+      it('should call `_theHappyEnd()` once the work is done', done => {
+        spyOn(cli, '_theHappyEnd');
+        spyOn(cli, '_theUnhappyEnd');
         doWorkSpy.and.returnValue(returnValue);
 
         cli.
           run([], doWorkSpy).
-          then(() => expect(cli._theEnd).toHaveBeenCalledWith('Test')).
+          then(() => expect(cli._theHappyEnd).toHaveBeenCalledWith('Test')).
+          then(() => expect(cli._theUnhappyEnd).not.toHaveBeenCalled()).
           then(done);
       });
     });
 
-    it('should not call `_theEnd()` on error', done => {
-      spyOn(cli, '_theEnd');
+    it('should call `_theUnhappyEnd()` on error (with the error returned by `doWork()`)', done => {
+      spyOn(cli, '_theHappyEnd');
+      spyOn(cli, '_theUnhappyEnd').and.returnValue(Promise.reject());
       doWorkSpy.and.returnValue(Promise.reject('Test'));
 
       cli.
         run([], doWorkSpy).
         catch(() => {
-          expect(cli._theEnd).not.toHaveBeenCalled();
+          expect(cli._theUnhappyEnd).toHaveBeenCalledWith('Test');
+          expect(cli._theHappyEnd).not.toHaveBeenCalledWith();
+
           done();
         });
     });
