@@ -56,7 +56,13 @@ describe('AbstractCli', () => {
     ];
 
     class MyCli extends AbstractCli {
-      getPhases() { return phases; }
+      _insertEmptyLine(value, isRejection) {
+        return isRejection ? Promise.reject(value) : value;
+      }
+
+      getPhases() {
+        return phases;
+      }
     }
 
     config = new Config(messages, argSpecs);

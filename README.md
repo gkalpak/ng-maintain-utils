@@ -35,6 +35,7 @@ _I_ may use it for building other tools (see above). Here is a brief overview of
   - `_displayUsage(usageMessage: string): void`
   - `_displayVersionInfo(): void`
   - `_getAndValidateInput(rawArgs: string[], argSpecs: ArgSpec[]): Promise<{[key: string]: string}>`
+  - `_insertEmptyLine<T>(value: T, isRejection?: boolean): T|Promise<T>`
   - `_theHappyEnd<T>(value: T): T`
   - `_theUnhappyEnd(err: any): Promise<any>`
 
