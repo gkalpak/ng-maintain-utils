@@ -428,40 +428,11 @@ describe('AbstractCli', () => {
   });
 
   describe('#_insertEmptyLine()', () => {
-    it('should insert an empty line (no matter what)', done => {
-      let promises = [
-        cli._insertEmptyLine(),
-        cli._insertEmptyLine('foo'),
-        cli._insertEmptyLine('foo', false),
-        cli._insertEmptyLine('foo', true).then(() => Promise.reject(), () => Promise.resolve())
-      ];
+    it('should just insert an empty line', () => {
+      cli._insertEmptyLine(),
 
-      Promise.
-        all(promises).
-        then(() => {
-          expect(console.log).toHaveBeenCalledTimes(4);
-          expect(console.log.calls.allArgs().every(args => !args.length)).toBe(true);
-        }).
-        then(done);
-    });
-
-    it('should forward the passed-in value (isRejection: false)', () => {
-      let value = {};
-
-      expect(cli._insertEmptyLine(value)).toBe(value);
-      expect(cli._insertEmptyLine(value, false)).toBe(value);
-    });
-
-    it('should reject with the passed-in value (isRejection: true)', done => {
-      let error = {};
-
-      cli.
-        _insertEmptyLine(error, true).
-        catch(err => {
-          expect(err).toBe(error);
-
-          done();
-        });
+      expect(console.log).toHaveBeenCalledTimes(1);
+      expect(console.log).toHaveBeenCalledWith();
     });
   });
 
@@ -692,36 +663,29 @@ describe('AbstractCli', () => {
           Promise.resolve({id: 6}));
       doWorkSpy.and.returnValues(Promise.resolve({id: 5}), Promise.reject({id: 6}));
 
-      Promise.resolve().
+      let promises = [
         // Invalid input
-        then(() => cli.run([], doWorkSpy)).
+        cli.run([], doWorkSpy).then(() => Promise.reject(), () => Promise.resolve()),
 
         // --version
-        then(() => cli.run([], doWorkSpy)).
+        cli.run([], doWorkSpy),
 
         // --usage
-        then(() => cli.run([], doWorkSpy)).
+        cli.run([], doWorkSpy),
 
         // --instructions
-        then(() => cli.run([], doWorkSpy)).
+        cli.run([], doWorkSpy),
 
         // `doWork()` resolves
-        then(() => cli.run([], doWorkSpy)).
+        cli.run([], doWorkSpy),
 
         // `doWork()` rejects
-        then(() => cli.run([], doWorkSpy)).
+        cli.run([], doWorkSpy).then(() => Promise.reject(), () => Promise.resolve())
+      ];
 
-        then(() => {
-          expect(cli._insertEmptyLine).toHaveBeenCalledTimes(6);
-
-          let args = cli._insertEmptyLine.calls.allArgs();
-          expect(args[0]).toEqual([{id: 1}, true]);
-          expect(args[1]).toEqual([undefined]);
-          expect(args[2]).toEqual([undefined]);
-          expect(args[3]).toEqual([undefined]);
-          expect(args[4]).toEqual([{id: 5}]);
-          expect(args[5]).toEqual([{id: 6}, true]);
-        }).
+      Promise.
+        all(promises).
+        then(() => expect(cli._insertEmptyLine).toHaveBeenCalledTimes(6)).
         then(done);
     });
   });
