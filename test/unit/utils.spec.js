@@ -330,6 +330,65 @@ describe('Utils', () => {
       expect(spawned[2].stdout.pipe.calls.argsFor(0)[0]).toBe(spawned[3].stdin);
     });
 
+    it('should support specifying a custom output stream', () => {
+      let outputStream = {};
+      let expectedOptions;
+
+      utils.spawnAsPromised('foo bar', null, outputStream);
+      expectedOptions = {stdio: ['inherit', 'pipe', 'inherit']};
+
+      expect(childProcess.spawn.calls.argsFor(0)[2]).toEqual(expectedOptions);
+      expect(spawned[0].stdout.pipe).toHaveBeenCalledWith(outputStream);
+      childProcess.spawn.calls.reset();
+      spawned[0].stdout.pipe.calls.reset();
+
+      utils.spawnAsPromised('foo bar | bar "baz" | "baz" qux', null, outputStream);
+      expectedOptions = [
+        {stdio: ['inherit', 'pipe', 'inherit']},
+        {stdio: ['pipe', 'pipe', 'inherit']},
+        {stdio: ['pipe', 'pipe', 'inherit']}
+      ];
+
+      expect(childProcess.spawn.calls.argsFor(0)[2]).toEqual(expectedOptions[0]);
+      expect(childProcess.spawn.calls.argsFor(1)[2]).toEqual(expectedOptions[1]);
+      expect(childProcess.spawn.calls.argsFor(2)[2]).toEqual(expectedOptions[2]);
+      expect(spawned[1].stdout.pipe.calls.argsFor(0)[0]).toBe(spawned[2].stdin);
+      expect(spawned[2].stdout.pipe.calls.argsFor(0)[0]).toBe(spawned[3].stdin);
+      expect(spawned[3].stdout.pipe.calls.argsFor(0)[0]).toBe(outputStream);
+    });
+
+    it('should support specifying custom input and output streams (at the same time)', () => {
+      let inputStream = {pipe: jasmine.createSpy('inputStream.pipe')};
+      let outputStream = {};
+      let expectedOptions;
+
+      utils.spawnAsPromised('foo bar', inputStream, outputStream);
+      expectedOptions = {stdio: ['pipe', 'pipe', 'inherit']};
+
+      expect(childProcess.spawn.calls.argsFor(0)[2]).toEqual(expectedOptions);
+      expect(inputStream.pipe).toHaveBeenCalledWith(spawned[0].stdin);
+      expect(spawned[0].stdout.pipe).toHaveBeenCalledWith(outputStream);
+      childProcess.spawn.calls.reset();
+      inputStream.pipe.calls.reset();
+      spawned[0].stdout.pipe.calls.reset();
+
+      utils.spawnAsPromised('foo bar | bar "baz" | "baz" qux', inputStream, outputStream);
+      expectedOptions = [
+        {stdio: ['pipe', 'pipe', 'inherit']},
+        {stdio: ['pipe', 'pipe', 'inherit']},
+        {stdio: ['pipe', 'pipe', 'inherit']}
+      ];
+
+      expect(childProcess.spawn.calls.argsFor(0)[2]).toEqual(expectedOptions[0]);
+      expect(childProcess.spawn.calls.argsFor(1)[2]).toEqual(expectedOptions[1]);
+      expect(childProcess.spawn.calls.argsFor(2)[2]).toEqual(expectedOptions[2]);
+      expect(inputStream.pipe).toHaveBeenCalledTimes(1);
+      expect(inputStream.pipe.calls.argsFor(0)[0]).toBe(spawned[1].stdin);
+      expect(spawned[1].stdout.pipe.calls.argsFor(0)[0]).toBe(spawned[2].stdin);
+      expect(spawned[2].stdout.pipe.calls.argsFor(0)[0]).toBe(spawned[3].stdin);
+      expect(spawned[3].stdout.pipe.calls.argsFor(0)[0]).toBe(outputStream);
+    });
+
     it('should return a promise', () => {
       expect(utils.spawnAsPromised('foo')).toEqual(jasmine.any(Promise));
     });
