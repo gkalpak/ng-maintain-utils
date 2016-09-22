@@ -111,7 +111,7 @@ _I_ may use it for building other tools (see above). Here is a brief overview of
   - `countCommitsSince(commit: string): Promise<number>`
   - `createBranch(branch: string): Promise`
   - `deleteBranch(branch: string, force?: boolean): Promise`
-  - `diff(commit: string): Promise`
+  - `diff(commit: string, noColor?: boolean): Promise`
   - `getCommitMessage(commit: string): Promise<string>`
   - `getLastCommitMessage(): Promise<string>`
   - `log(oneline?: boolean, count?: number): Promise`

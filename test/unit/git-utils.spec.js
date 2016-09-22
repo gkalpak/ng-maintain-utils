@@ -113,8 +113,10 @@ describe('GitUtils', () => {
       expectToReturnPromise('diff', ['foo']);
     });
 
-    it('should call `git diff <commit>`', () => {
-      expectToCall('diff', ['foo'], 'git diff foo');
+    it('should call `git diff [--color|--no-color] <commit>`', () => {
+      expectToCall('diff', ['foo'], 'git diff --color foo');
+      expectToCall('diff', ['foo', false], 'git diff --color foo');
+      expectToCall('diff', ['foo', true], 'git diff --no-color foo');
     });
   });
 
