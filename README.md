@@ -115,7 +115,7 @@ _I_ may use it for building other tools (see above). Here is a brief overview of
   - `diffWithHighlight(commit: string): Promise`
   - `getCommitMessage(commit: string): Promise<string>`
   - `getLastCommitMessage(): Promise<string>`
-  - `log(oneline?: boolean, count?: number): Promise`
+  - `log(oneline?: boolean, count?: number, noDecorate?: boolean): Promise`
   - `mergePullRequest(prUrl: string): Promise`
   - `pull(branch: string, rebase?: boolean): Promise`
   - `push(branch: string): Promise`

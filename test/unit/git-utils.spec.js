@@ -220,20 +220,29 @@ describe('GitUtils', () => {
       expectToReturnPromise('log');
     });
 
-    it('should call `git log [--oneline] [-<count>]`', () => {
-      expectToCall('log', [], 'git log');
-      expectToCall('log', [null, null], 'git log');
-      expectToCall('log', [false, false], 'git log');
+    it('should call `git log --[no-]decorate [--oneline] [-<count>]`', () => {
+      expectToCall('log', [], 'git log --decorate');
+      expectToCall('log', [null, null, null], 'git log --decorate');
+      expectToCall('log', [false, false, false], 'git log --decorate');
 
-      expectToCall('log', [true], 'git log --oneline');
-      expectToCall('log', [true, null], 'git log --oneline');
-      expectToCall('log', [true, false], 'git log --oneline');
-      expectToCall('log', [true, 0], 'git log --oneline');
+      expectToCall('log', [true], 'git log --decorate --oneline');
+      expectToCall('log', [true, null], 'git log --decorate --oneline');
+      expectToCall('log', [true, false], 'git log --decorate --oneline');
+      expectToCall('log', [true, null, null], 'git log --decorate --oneline');
+      expectToCall('log', [true, null, false], 'git log --decorate --oneline');
+      expectToCall('log', [true, 0], 'git log --decorate --oneline');
+      expectToCall('log', [true, 0, true], 'git log --no-decorate --oneline');
 
-      expectToCall('log', [null, 42], 'git log -42');
-      expectToCall('log', [false, 42], 'git log -42');
+      expectToCall('log', [null, 42], 'git log --decorate -42');
+      expectToCall('log', [false, 42], 'git log --decorate -42');
+      expectToCall('log', [null, 42, null], 'git log --decorate -42');
+      expectToCall('log', [null, 42, false], 'git log --decorate -42');
+      expectToCall('log', [null, 42, true], 'git log --no-decorate -42');
 
-      expectToCall('log', [true, 42], 'git log --oneline -42');
+      expectToCall('log', [true, 42], 'git log --decorate --oneline -42');
+      expectToCall('log', [true, 42, null], 'git log --decorate --oneline -42');
+      expectToCall('log', [true, null, true], 'git log --no-decorate --oneline');
+      expectToCall('log', [true, 42, true], 'git log --no-decorate --oneline -42');
     });
 
     it('should ignore rejections', done => {
