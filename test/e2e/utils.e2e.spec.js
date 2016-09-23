@@ -9,7 +9,7 @@ let PassThrough = stream.PassThrough;
 let Utils = require('../../lib/utils');
 
 // Tests
-fdescribe('Utils', () => {
+describe('Utils', () => {
   let utils;
 
   beforeEach(() => {

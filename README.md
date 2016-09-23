@@ -127,6 +127,25 @@ _I_ may use it for building other tools (see above). Here is a brief overview of
     - _cleanUper_: `CleanUper`
     - _utils_: `Utils`
   
+- **`GitUtils.DiffHighlighter`:** Enhances a diff by highlighting areas of interest. The
+  implementation is loosely based on the idea of [diff-highlight][diff-highlight], although the
+  matching heuristics are different. It exposes the underlying streams via:
+
+  - `getInputStream(): PassThrough`
+  - `getOutputStream(): PassThrough`
+
+  Requires:
+  - _styles?_:
+
+    ```ts
+    {
+      lineRemoved?: (text: string) => string,
+      lineAdded?: (text: string) => string,
+      areaRemoved?: (text: string) => string,
+      areaAdded?: (text: string) => string
+    }
+    ```
+
 - **`Phase`:** A simple wrapper for "phase" entities (with validation). A "phase" is a description
   of a unit of work, including an ID, a short description, a list of the tasks involved and an error
   message (or code) specific to this "phase".
@@ -187,5 +206,6 @@ The following test-types/modes are available:
 
 [build-status]: https://travis-ci.org/gkalpak/ng-maintain-utils
 [build-status-image]: https://travis-ci.org/gkalpak/ng-maintain-utils.svg?branch=master
+[diff-highlight]: https://github.com/git/git/blob/master/contrib/diff-highlight/README
 [ng-cla-check]: https://www.npmjs.com/package/@gkalpak/ng-cla-check
 [ng-pr-merge]: https://www.npmjs.com/package/@gkalpak/ng-pr-merge

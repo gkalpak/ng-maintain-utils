@@ -3,6 +3,7 @@
 // Imports - Local
 let AbstractValidatable = require('../../lib/abstract-validatable');
 let ArgSpec = require('../../lib/arg-spec');
+
 let UnnamedArgSpec = ArgSpec.Unnamed;
 
 // Tests
