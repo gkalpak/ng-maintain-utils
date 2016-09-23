@@ -112,6 +112,7 @@ _I_ may use it for building other tools (see above). Here is a brief overview of
   - `createBranch(branch: string): Promise`
   - `deleteBranch(branch: string, force?: boolean): Promise`
   - `diff(commit: string, noColor?: boolean): Promise`
+  - `diffWithHighlight(commit: string): Promise`
   - `getCommitMessage(commit: string): Promise<string>`
   - `getLastCommitMessage(): Promise<string>`
   - `log(oneline?: boolean, count?: number): Promise`
@@ -127,12 +128,14 @@ _I_ may use it for building other tools (see above). Here is a brief overview of
     - _cleanUper_: `CleanUper`
     - _utils_: `Utils`
   
-- **`GitUtils.DiffHighlighter`:** Enhances a diff by highlighting areas of interest. The
-  implementation is loosely based on the idea of [diff-highlight][diff-highlight], although the
-  matching heuristics are different. It exposes the underlying streams via:
+- **`GitUtils.DiffHighlighter`:** Can be used to enhance a diff by highlighting areas of interest.
+  The general implementation is loosely based on the idea of [diff-highlight][diff-highlight],
+  although the matching heuristics and coloring (among other things) are different.
+  
+  It exposes the underlying streams via:
 
-  - `getInputStream(): PassThrough`
-  - `getOutputStream(): PassThrough`
+  - `getInputStream(): stream.PassThrough`
+  - `getOutputStream(): stream.PassThrough`
 
   Requires:
   - _styles?_:

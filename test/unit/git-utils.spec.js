@@ -5,6 +5,8 @@ let fs = require('fs');
 let https = require('https');
 let stream = require('stream');
 
+let PassThrough = stream.PassThrough;
+
 // Imports - Local
 let CleanUper = require('../../lib/clean-uper');
 let GitUtils = require('../../lib/git-utils');
@@ -24,6 +26,12 @@ describe('GitUtils', () => {
     ['execAsPromised', 'spawnAsPromised'].forEach(methodName => {
       let cb = () => new Promise((resolve, reject) => deferred = {resolve, reject});
       spyOn(utils, methodName).and.callFake(cb);
+    });
+  });
+
+  describe('GitUtils#DiffHighlighter', () => {
+    it('should be a function', () => {
+      expect(GitUtils.DiffHighlighter).toEqual(jasmine.any(Function));
     });
   });
 
@@ -113,10 +121,59 @@ describe('GitUtils', () => {
       expectToReturnPromise('diff', ['foo']);
     });
 
-    it('should call `git diff [--color|--no-color] <commit>`', () => {
+    it('should call `git diff --[no-]color <commit>`', () => {
       expectToCall('diff', ['foo'], 'git diff --color foo');
       expectToCall('diff', ['foo', false], 'git diff --color foo');
       expectToCall('diff', ['foo', true], 'git diff --no-color foo');
+    });
+  });
+
+  describe('#diffWithHighlight()', () => {
+    it('should return a promise', () => {
+      expectToReturnPromise('diffWithHighlight', ['foo']);
+    });
+
+    it('should call `git diff --no-color <commit>` and `less -FRX` (with a I/O streams)', () => {
+      let ptStream = jasmine.any(PassThrough);
+
+      createGitUtils().diffWithHighlight('foo');
+
+      expect(utils.spawnAsPromised).toHaveBeenCalledTimes(2);
+      expect(utils.spawnAsPromised).toHaveBeenCalledWith('git diff --no-color foo', null, ptStream);
+      expect(utils.spawnAsPromised).toHaveBeenCalledWith('less -FRX', ptStream);
+    });
+
+    it('should pipe the output of `git diff ...` to the input of `less ...`', done => {
+      createGitUtils().diffWithHighlight('foo');
+
+      let outputStream = utils.spawnAsPromised.calls.argsFor(0)[2];
+      let inputStream = utils.spawnAsPromised.calls.argsFor(1)[1];
+
+      inputStream.on('data', data => {
+        expect(String(data).trim()).toBe('foo');
+        done();
+      });
+
+      outputStream.write('foo\n');
+    });
+
+    it('should resolve when both commands are completed', done => {
+      utils.spawnAsPromised.and.returnValues(Promise.resolve(), Promise.resolve());
+
+      createGitUtils().
+        diffWithHighlight('foo').
+        then(done);
+    });
+
+    it('should reject when any command errors', done => {
+      utils.spawnAsPromised.and.returnValues(Promise.reject(), Promise.resolve(),
+                                             Promise.resolve(), Promise.reject());
+
+      let gitUtils = createGitUtils();
+
+      gitUtils.diffWithHighlight('foo').
+        catch(() => gitUtils.diffWithHighlight('bar')).
+        catch(done);
     });
   });
 
@@ -189,7 +246,6 @@ describe('GitUtils', () => {
   });
 
   describe('#mergePullRequest()', () => {
-    let PassThrough = stream.PassThrough;
     let gitUtils;
     let request;
     let response;
