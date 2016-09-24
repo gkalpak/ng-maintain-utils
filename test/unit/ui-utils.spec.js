@@ -435,6 +435,19 @@ describe('UiUtils', () => {
           then(() => expect(console.error.calls.mostRecent().args[1]).toBe('Test')).
           then(done);
       });
+
+      it('should log a generic error to the console when cleaning up rejects with no reason',
+        done => {
+          cleanUper.hasTasks.and.returnValue(true);
+          uiUtils.offerToCleanUp.and.returnValue(Promise.reject());
+
+          errorMessages.ERROR_unexpected = 'Wait, whaaat?';
+
+          reversePromise(uiUtils.reportAndRejectFnGen()()).
+            then(() => expect(console.error.calls.mostRecent().args[1]).toBe('Wait, whaaat?')).
+            then(done);
+        }
+      );
     });
 
     // Helpers
