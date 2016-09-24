@@ -114,118 +114,168 @@ describe('DiffHighlighter', () => {
     });
   });
 
+  describe('#_breakUpLine()', () => {
+    it('should return an object (with appropriate properties)', () => {
+      expect(dh._breakUpLine('')).toEqual(jasmine.objectContaining({
+        text: jasmine.any(String),
+        leadingWhiteSpace: jasmine.any(String),
+        trailingWhiteSpace: jasmine.any(String)
+      }));
+    });
+
+    it('should extract the leading/trailing whitespace', () => {
+      expect(dh._breakUpLine(' foo').leadingWhiteSpace).toBe(' ');
+      expect(dh._breakUpLine('bar  ').trailingWhiteSpace).toBe('  ');
+
+      expect(dh._breakUpLine('   baz    ')).toEqual(jasmine.objectContaining({
+        leadingWhiteSpace: '   ',
+        trailingWhiteSpace: '    '
+      }));
+
+      expect(dh._breakUpLine('qux')).toEqual(jasmine.objectContaining({
+        leadingWhiteSpace: '',
+        trailingWhiteSpace: ''
+      }));
+    });
+
+    it('should isolate the rest of the text', () => {
+      expect(dh._breakUpLine(' foo').text).toBe('foo');
+      expect(dh._breakUpLine('bar  ').text).toBe('bar');
+      expect(dh._breakUpLine('   baz    ').text).toBe('baz');
+      expect(dh._breakUpLine('qux').text).toBe('qux');
+    });
+
+    it('should ignore non-leading/trailing whitespace', () => {
+      expect(dh._breakUpLine('foo bar baz qux')).toEqual(jasmine.objectContaining({
+        text: 'foo bar baz qux',
+        leadingWhiteSpace: '',
+        trailingWhiteSpace: ''
+      }));
+
+      expect(dh._breakUpLine(' foo  bar   baz    qux     ')).toEqual(jasmine.objectContaining({
+        text: 'foo  bar   baz    qux',
+        leadingWhiteSpace: ' ',
+        trailingWhiteSpace: '     '
+      }));
+    });
+
+    it('should detect any type of whitespace', () => {
+      expect(dh._breakUpLine(' \t \r foo bar\tbaz\rqux\nbaz\r\nbar foo \n \r\n ')).toEqual({
+        text: 'foo bar\tbaz\rqux\nbaz\r\nbar foo',
+        leadingWhiteSpace: ' \t \r ',
+        trailingWhiteSpace: ' \n \r\n '
+      });
+    });
+
+    it('should handle whitespace-only strings correctly', () => {
+      expect(dh._breakUpLine('     ')).toEqual({
+        text: '',
+        leadingWhiteSpace: '     ',
+        trailingWhiteSpace: ''
+      });
+    });
+
+    it('should handle empty strings correctly', () => {
+      expect(dh._breakUpLine('')).toEqual({
+        text: '',
+        leadingWhiteSpace: '',
+        trailingWhiteSpace: ''
+      });
+    });
+  });
+
   describe('#_getPairs()', () => {
     it('should pair changes (and calculate `commonLengths`)', () => {
-      dh._changes = [
-        {type: '-', line: '1 line'},
-        {type: '-', line: '2 hilarious lines'},
-        {type: '+', line: '1 funny line'},
-        {type: '-', line: 'I have not been replaced'},
-        {type: '+', line: '2 funny lines'},
-        {type: '+', line: 'And I have not replaced anyone'}
+      let changes = [
+        {type: '-', line: dh._breakUpLine('1 line')},
+        {type: '-', line: dh._breakUpLine('2 hilarious lines')},
+        {type: '+', line: dh._breakUpLine('1 funny line')},
+        {type: '-', line: dh._breakUpLine('I have not been replaced')},
+        {type: '+', line: dh._breakUpLine('2 funny lines')},
+        {type: '+', line: dh._breakUpLine('And I have not replaced anyone')}
       ];
+      dh._changes = changes.slice(0);
 
       let pairs = dh._getPairs();
 
       expect(pairs).toEqual([
-        {
-          removed: {type: '-', line: '1 line'},
-          added: {type: '+', line: '1 funny line'},
-          commonLengths: {prefix: 2, suffix: 4}
-        },
-        {
-          removed: {type: '-', line: '2 hilarious lines'},
-          added: {type: '+', line: '2 funny lines'},
-          commonLengths: {prefix: 2, suffix: 6}
-        },
-        {
-          removed: {type: '-', line: 'I have not been replaced'}
-        },
-        {
-          added: {type: '+', line: 'And I have not replaced anyone'}
-        }
+        {removed: changes[0], added: changes[2], commonLengths: {prefix: 2, suffix: 4}},
+        {removed: changes[1], added: changes[4], commonLengths: {prefix: 2, suffix: 6}},
+        {removed: changes[3]},
+        {added: changes[5]}
       ]);
     });
 
     it('should not include a change in more than one pairs', () => {
-      dh._changes = [
-        {type: '-', line: '1 red line'},
-        {type: '+', line: '1 green line'},
-        {type: '+', line: '1 green line'},
-        {type: '-', line: '2 red lines'},
-        {type: '-', line: '2 red lines'},
-        {type: '+', line: '2 green lines'}
+      let changes = [
+        {type: '-', line: dh._breakUpLine('1 red line')},
+        {type: '+', line: dh._breakUpLine('1 green line')},
+        {type: '+', line: dh._breakUpLine('1 green line')},
+        {type: '-', line: dh._breakUpLine('2 red lines')},
+        {type: '-', line: dh._breakUpLine('2 red lines')},
+        {type: '+', line: dh._breakUpLine('2 green lines')}
       ];
+      dh._changes = changes.slice(0);
 
       let pairs = dh._getPairs();
 
       expect(pairs).toEqual([
-        {
-          removed: {type: '-', line: '1 red line'},
-          added: {type: '+', line: '1 green line'},
-          commonLengths: {prefix: 2, suffix: 5}
-        },
-        {
-          removed: {type: '-', line: '2 red lines'},
-          added: {type: '+', line: '2 green lines'},
-          commonLengths: {prefix: 2, suffix: 6}
-        },
-        {
-          removed: {type: '-', line: '2 red lines'}
-        },
-        {
-          added: {type: '+', line: '1 green line'}
-        }
+        {removed: changes[0], added: changes[1], commonLengths: {prefix: 2, suffix: 5}},
+        {removed: changes[3], added: changes[5], commonLengths: {prefix: 2, suffix: 6}},
+        {removed: changes[4]},
+        {added: changes[2]}
       ]);
     });
 
     it('should not match changes whose similarity does not exceed a threshold', () => {
-      dh._changes = [
-        {type: '-', line: '12223'},
-        {type: '+', line: '14443'},
-        {type: '-', line: '122223'},
-        {type: '+', line: '144443'}
+      let changes = [
+        {type: '-', line: dh._breakUpLine('12223')},
+        {type: '+', line: dh._breakUpLine('14443')},
+        {type: '-', line: dh._breakUpLine('122223')},
+        {type: '+', line: dh._breakUpLine('144443')}
       ];
+      dh._changes = changes.slice(0);
 
       let pairs = dh._getPairs();
 
       expect(pairs).toEqual([
-        {
-          removed: {type: '-', line: '12223'},
-          added: {type: '+', line: '14443'},
-          commonLengths: {prefix: 1, suffix: 1}
-        },
-        {
-          removed: {type: '-', line: '122223'}
-        },
-        {
-          added: {type: '+', line: '144443'}
-        }
+        {removed: changes[0], added: changes[1], commonLengths: {prefix: 1, suffix: 1}},
+        {removed: changes[2]},
+        {added: changes[3]}
+      ]);
+    });
+
+    it('should ignore leading/trailing whitespace when matching changes', () => {
+      let changes = [
+        {type: '-', line: dh._breakUpLine('     12223     ')},
+        {type: '+', line: dh._breakUpLine('     22222     ')},
+        {type: '+', line: dh._breakUpLine('  12423  ')}
+      ];
+      dh._changes = changes.slice(0);
+
+      let pairs = dh._getPairs();
+
+      expect(pairs).toEqual([
+        {removed: changes[0], added: changes[2], commonLengths: {prefix: 2, suffix: 2}},
+        {added: changes[1]}
       ]);
     });
 
     it('should be able to handle "asymmetric" hunks', () => {
-      dh._changes = [
-        {type: '-', line: '1 red line'},
-        {type: '-', line: '2 red lines'},
-        {type: '-', line: '3 red lines'},
-        {type: '+', line: '1 green line'}
+      let changes = [
+        {type: '-', line: dh._breakUpLine('1 red line')},
+        {type: '-', line: dh._breakUpLine('2 red lines')},
+        {type: '-', line: dh._breakUpLine('3 red lines')},
+        {type: '+', line: dh._breakUpLine('1 green line')}
       ];
+      dh._changes = changes.slice(0);
 
       let pairs = dh._getPairs();
 
       expect(pairs).toEqual([
-        {
-          removed: {type: '-', line: '1 red line'},
-          added: {type: '+', line: '1 green line'},
-          commonLengths: {prefix: 2, suffix: 5}
-        },
-        {
-          removed: {type: '-', line: '2 red lines'}
-        },
-        {
-          removed: {type: '-', line: '3 red lines'}
-        }
+        {removed: changes[0], added: changes[3], commonLengths: {prefix: 2, suffix: 5}},
+        {removed: changes[1]},
+        {removed: changes[2]}
       ]);
     });
 
@@ -245,26 +295,19 @@ describe('DiffHighlighter', () => {
         //    Pairs: (-1 noob line <--> +1 funny line), (-1 fine line <--> +1 hilarious line)
         //    Score: 2.29
 
-        dh._changes = [
-          {type: '-', line: '1 noob line'},
-          {type: '-', line: '1 fine line'},
-          {type: '+', line: '1 hilarious line'},
-          {type: '+', line: '1 funny line'}
+        let changes = [
+          {type: '-', line: dh._breakUpLine('1 noob line')},
+          {type: '-', line: dh._breakUpLine('1 fine line')},
+          {type: '+', line: dh._breakUpLine('1 hilarious line')},
+          {type: '+', line: dh._breakUpLine('1 funny line')}
         ];
+        dh._changes = changes.slice(0);
 
         let pairs = dh._getPairs();
 
         expect(pairs).toEqual([
-          {
-            removed: {type: '-', line: '1 noob line'},
-            added: {type: '+', line: '1 funny line'},
-            commonLengths: {prefix: 2, suffix: 5}
-          },
-          {
-            removed: {type: '-', line: '1 fine line'},
-            added: {type: '+', line: '1 hilarious line'},
-            commonLengths: {prefix: 2, suffix: 5}
-          }
+          {removed: changes[0], added: changes[3], commonLengths: {prefix: 2, suffix: 5}},
+          {removed: changes[1], added: changes[2], commonLengths: {prefix: 2, suffix: 5}}
         ]);
       }
     );
@@ -329,10 +372,10 @@ describe('DiffHighlighter', () => {
 
   describe('#_highlightChange()', () => {
     it('should add a `highlighted` property (string) to the specified `change`', () => {
-      let change1 = {type: '-', line: 'Remove me'};
-      let change2 = {type: '-', line: 'Remove me'};
-      let change3 = {type: '-', line: 'Remove me'};
-      let change4 = {type: '-', line: 'Remove me'};
+      let change1 = {type: '-', line: dh._breakUpLine('Remove this')};
+      let change2 = {type: '-', line: dh._breakUpLine('Remove this')};
+      let change3 = {type: '-', line: dh._breakUpLine('Remove this')};
+      let change4 = {type: '-', line: dh._breakUpLine('Remove this')};
 
       dh._highlightChange(change1);
       dh._highlightChange(change2, 4);
@@ -346,8 +389,8 @@ describe('DiffHighlighter', () => {
     });
 
     it('should prepend with the proper symbol (`type`) when highlighting', () => {
-      let change1 = {type: '-', line: 'Remove me'};
-      let change2 = {type: '+', line: 'Add me'};
+      let change1 = {type: '-', line: dh._breakUpLine('Remove this')};
+      let change2 = {type: '+', line: dh._breakUpLine('Add that')};
 
       dh._highlightChange(change1);
       dh._highlightChange(change2);
@@ -358,9 +401,44 @@ describe('DiffHighlighter', () => {
       expect(change2.highlighted).not.toContain('-');
     });
 
+    it('should prepend/append with the leading/trailing whitespace when highlighting', () => {
+      let change1 = {type: '-', line: dh._breakUpLine(' Remove this  ')};
+      let change2 = {type: '+', line: dh._breakUpLine('   Add that    ')};
+
+      dh._highlightChange(change1);
+      dh._highlightChange(change2);
+
+      expect(change1.highlighted).toMatch(/\S\s{1}\S/);
+      expect(change1.highlighted).toMatch(/\S\s{2}\S/);
+      expect(change2.highlighted).toMatch(/\S\s{3}\S/);
+      expect(change2.highlighted).toMatch(/\S\s{4}\S/);
+    });
+
+    it('should highlight the leading whitespace as `lineRemoved/Added`', () => {
+      let change1 = {type: '-', line: dh._breakUpLine(' please remove this')};
+      let change2 = {type: '+', line: dh._breakUpLine('  please add that')};
+
+      dh._highlightChange(change1, 7);
+      dh._highlightChange(change2, 7);
+
+      expect(change1.highlighted).toContain('<red><bold>- please </bold></red>');
+      expect(change2.highlighted).toContain('<green><bold>+  please </bold></green>');
+    });
+
+    it('should highlight the trailing whitespace as `lineRemoved/Added`', () => {
+      let change1 = {type: '-', line: dh._breakUpLine('please remove this ')};
+      let change2 = {type: '+', line: dh._breakUpLine('please add that  ')};
+
+      dh._highlightChange(change1, null, 5);
+      dh._highlightChange(change2, null, 5);
+
+      expect(change1.highlighted).toContain('<red><bold> this </bold></red>');
+      expect(change2.highlighted).toContain('<green><bold> that  </bold></green>');
+    });
+
     it('should highlight the prefix as `lineRemoved/Added`', () => {
-      let change1 = {type: '-', line: 'please remove me'};
-      let change2 = {type: '+', line: 'please add me'};
+      let change1 = {type: '-', line: dh._breakUpLine('please remove this')};
+      let change2 = {type: '+', line: dh._breakUpLine('please add that')};
 
       dh._highlightChange(change1, 7);
       dh._highlightChange(change2, 7);
@@ -370,19 +448,19 @@ describe('DiffHighlighter', () => {
     });
 
     it('should highlight the suffix as `lineRemoved/Added`', () => {
-      let change1 = {type: '-', line: 'please remove me'};
-      let change2 = {type: '+', line: 'please add me'};
+      let change1 = {type: '-', line: dh._breakUpLine('please remove this')};
+      let change2 = {type: '+', line: dh._breakUpLine('please add that')};
 
-      dh._highlightChange(change1, null, 3);
-      dh._highlightChange(change2, null, 3);
+      dh._highlightChange(change1, null, 5);
+      dh._highlightChange(change2, null, 5);
 
-      expect(change1.highlighted).toContain('<red><bold> me</bold></red>');
-      expect(change2.highlighted).toContain('<green><bold> me</bold></green>');
+      expect(change1.highlighted).toContain('<red><bold> this</bold></red>');
+      expect(change2.highlighted).toContain('<green><bold> that</bold></green>');
     });
 
     it('should highlight the different area as `areaRemoved/Added`', () => {
-      let change1 = {type: '-', line: 'please remove me'};
-      let change2 = {type: '+', line: 'please add me'};
+      let change1 = {type: '-', line: dh._breakUpLine('please remove me')};
+      let change2 = {type: '+', line: dh._breakUpLine(' please add me  ')};
 
       dh._highlightChange(change1, 7, 3);
       dh._highlightChange(change2, 7, 3);
@@ -392,36 +470,36 @@ describe('DiffHighlighter', () => {
     });
 
     it('should highlight the whole line as `areaRemoved/Added` if no prefix and suffix', () => {
-      let change1 = {type: '-', line: 'please remove me'};
-      let change2 = {type: '+', line: 'please add me'};
+      let change1 = {type: '-', line: dh._breakUpLine('please remove this')};
+      let change2 = {type: '+', line: dh._breakUpLine(' please add that  ')};
 
       dh._highlightChange(change1);
       dh._highlightChange(change2);
 
       expect(change1.highlighted).toBe(
           '<red><bold>-</bold></red>' +
-          '<bgRed><white>please remove me</white></bgRed>');
+          '<bgRed><white>please remove this</white></bgRed>');
       expect(change2.highlighted).toBe(
           '<green><bold>+</bold></green>' +
-          '<bgGreen><black>please add me</black></bgGreen>');
+          '<bgGreen><black> please add that  </black></bgGreen>');
     });
 
-    it('should merge prefix and suffix if the different area is empty', () => {
-      let change1 = {type: '-', line: 'please remove me'};
-      let change2 = {type: '+', line: 'please add me'};
+    it('should merge prefix, suffix and whitespace if the different area is empty', () => {
+      let change1 = {type: '-', line: dh._breakUpLine('please remove this')};
+      let change2 = {type: '+', line: dh._breakUpLine(' please add that  ')};
 
-      dh._highlightChange(change1, 8, 8);
-      dh._highlightChange(change2, 8, 5);
+      dh._highlightChange(change1, 9, 9);
+      dh._highlightChange(change2, 9, 6);
 
-      expect(change1.highlighted).toBe('<red><bold>-please remove me</bold></red>');
-      expect(change2.highlighted).toBe('<green><bold>+please add me</bold></green>');
+      expect(change1.highlighted).toBe('<red><bold>-please remove this</bold></red>');
+      expect(change2.highlighted).toBe('<green><bold>+ please add that  </bold></green>');
     });
 
     it('should ignore a missing prefix or suffix', () => {
-      let change1 = {type: '-', line: 'please remove me'};
-      let change2 = {type: '+', line: 'please add me'};
-      let change3 = {type: '-', line: 'please remove me'};
-      let change4 = {type: '+', line: 'please add me'};
+      let change1 = {type: '-', line: dh._breakUpLine('please remove this')};
+      let change2 = {type: '+', line: dh._breakUpLine(' please add that  ')};
+      let change3 = {type: '-', line: dh._breakUpLine('please remove me')};
+      let change4 = {type: '+', line: dh._breakUpLine(' please add me  ')};
 
       dh._highlightChange(change1, 7);
       dh._highlightChange(change2, 7);
@@ -430,18 +508,19 @@ describe('DiffHighlighter', () => {
 
       expect(change1.highlighted).toBe(
           '<red><bold>-please </bold></red>' +
-          '<bgRed><white>remove me</white></bgRed>');
+          '<bgRed><white>remove this</white></bgRed>');
       expect(change2.highlighted).toBe(
-          '<green><bold>+please </bold></green>' +
-          '<bgGreen><black>add me</black></bgGreen>');
+          '<green><bold>+ please </bold></green>' +
+          '<bgGreen><black>add that</black></bgGreen>' +
+          '<green><bold>  </bold></green>');
       expect(change3.highlighted).toBe(
           '<red><bold>-</bold></red>' +
           '<bgRed><white>please remove</white></bgRed>' +
           '<red><bold> me</bold></red>');
       expect(change4.highlighted).toBe(
-          '<green><bold>+</bold></green>' +
+          '<green><bold>+ </bold></green>' +
           '<bgGreen><black>please add</black></bgGreen>' +
-          '<green><bold> me</bold></green>');
+          '<green><bold> me  </bold></green>');
     });
   });
 
@@ -499,7 +578,7 @@ describe('DiffHighlighter', () => {
       mockPairs = [{id: 1}, {id: 1}, {id: 3}];
 
       spyOn(dh, '_getPairs').and.returnValue(mockPairs);
-      spyOn(dh, '_highlightPair').and.callFake(pair => pair.highlighted = `<${pair.line}>`);
+      spyOn(dh, '_highlightPair');
       spyOn(dh, '_writeLine');
     });
 
@@ -550,6 +629,7 @@ describe('DiffHighlighter', () => {
 
   describe('#_processLine()', () => {
     beforeEach(() => {
+      spyOn(dh, '_breakUpLine').and.callFake(rawLine => `<broken-up>${rawLine}</broken-up>`);
       spyOn(dh, '_processChanges');
       spyOn(dh, '_writeLine');
     });
@@ -563,21 +643,30 @@ describe('DiffHighlighter', () => {
       expect(dh._writeLine).toHaveBeenCalledWith('process me');
     });
 
+    it('should break up changed lines with `_breakUpLine()`', () => {
+      dh._processLine('- Remove this');
+      dh._processLine('- Add that');
+
+      expect(dh._breakUpLine).toHaveBeenCalledTimes(2);
+      expect(dh._breakUpLine).toHaveBeenCalledWith(' Remove this');
+      expect(dh._breakUpLine).toHaveBeenCalledWith(' Add that');
+    });
+
     it('should record a change for each removed line', () => {
-      dh._processLine('- Removed this');
+      dh._processLine('- Remove this');
 
       expect(dh._changes).toEqual([{
         type: '-',
-        line: ' Removed this',
+        line: '<broken-up> Remove this</broken-up>',
       }]);
     });
 
     it('should record a change for each added line', () => {
-      dh._processLine('+ Added that');
+      dh._processLine('+ Add that');
 
       expect(dh._changes).toEqual([{
         type: '+',
-        line: ' Added that',
+        line: '<broken-up> Add that</broken-up>',
       }]);
     });
 
@@ -590,6 +679,7 @@ describe('DiffHighlighter', () => {
       expect(dh._writeLine).toHaveBeenCalledTimes(2);
       expect(dh._writeLine).toHaveBeenCalledWith('--- a/file.ext');
       expect(dh._writeLine).toHaveBeenCalledWith('+++ b/file.ext');
+      expect(dh._breakUpLine).not.toHaveBeenCalled();
       expect(dh._changes.push).not.toHaveBeenCalled();
       expect(dh._changes.length).toBe(0);
     });
