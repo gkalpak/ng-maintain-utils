@@ -108,6 +108,7 @@ _I_ may use it for building other tools (see above). Here is a brief overview of
   - `abortAm(): Promise`
   - `abortRebase(): Promise`
   - `checkout(branch: string): Promise`
+  - `clean(mode?: string = 'interactive'): Promise`
   - `countCommitsSince(commit: string): Promise<number>`
   - `createBranch(branch: string): Promise`
   - `deleteBranch(branch: string, force?: boolean): Promise`

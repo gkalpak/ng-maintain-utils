@@ -75,6 +75,23 @@ describe('GitUtils', () => {
     });
   });
 
+  describe('#clean()', () => {
+    it('should return a promise', () => {
+      expectToReturnPromise('clean');
+    });
+
+    it('should call `git clean [-<m>|--<mode>]`', () => {
+      expectToCall('clean', ['f'], 'git clean -f');
+      expectToCall('clean', ['dry-run'], 'git clean --dry-run');
+    });
+
+    it('should use `interactive` mode by default', () => {
+      expectToCall('clean', 'git clean --interactive');
+      expectToCall('clean', [null], 'git clean --interactive');
+      expectToCall('clean', [false], 'git clean --interactive');
+    });
+  });
+
   describe('#countCommitsSince()', () => {
     it('should return a promise', () => {
       expectToReturnPromise('countCommitsSince', ['foo']);
