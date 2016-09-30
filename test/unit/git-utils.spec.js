@@ -146,18 +146,23 @@ describe('GitUtils', () => {
   });
 
   describe('#diffWithHighlight()', () => {
+    let gitCmdTmpl = 'git diff --no-color <commit>';
+    let lessCmdTmpl = 'less --no-init --raw-control-chars';
+
     it('should return a promise', () => {
       expectToReturnPromise('diffWithHighlight', ['foo']);
     });
 
-    it('should call `git diff --no-color <commit>` and `less -FRX` (with a I/O streams)', () => {
+    it(`should call \`${gitCmdTmpl}\` and \`${lessCmdTmpl}\` (with I/O streams)`, () => {
+      let gitCmd = gitCmdTmpl.replace('<commit>', 'foo');
+      let lessCmd = lessCmdTmpl;
       let ptStream = jasmine.any(PassThrough);
 
       createGitUtils().diffWithHighlight('foo');
 
       expect(utils.spawnAsPromised).toHaveBeenCalledTimes(2);
-      expect(utils.spawnAsPromised).toHaveBeenCalledWith('git diff --no-color foo', null, ptStream);
-      expect(utils.spawnAsPromised).toHaveBeenCalledWith('less -FRX', ptStream);
+      expect(utils.spawnAsPromised).toHaveBeenCalledWith(gitCmd, null, ptStream);
+      expect(utils.spawnAsPromised).toHaveBeenCalledWith(lessCmd, ptStream);
     });
 
     it('should pipe the output of `git diff ...` to the input of `less ...`', done => {
