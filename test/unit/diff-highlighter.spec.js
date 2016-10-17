@@ -575,7 +575,7 @@ describe('DiffHighlighter', () => {
     let mockPairs;
 
     beforeEach(() => {
-      mockPairs = [{id: 1}, {id: 1}, {id: 3}];
+      mockPairs = [{id: 1}, {id: 2}, {id: 3}];
 
       spyOn(dh, '_getPairs').and.returnValue(mockPairs);
       spyOn(dh, '_highlightPair');
