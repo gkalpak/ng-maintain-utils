@@ -150,6 +150,28 @@ _I_ may use it for building other tools (see above). Here is a brief overview of
     }
     ```
 
+- **`GitUtils.DiffHighlighter2`:** An alternative, API-compatible implementation of
+  `GitUtils.DiffHighlighter`. The highlighting is more accurate, as it is able to only highlight the
+  regions that have changed. The main drawback is that it fails to show removed/added empty lines, 
+  because of its dependency on `Git`s `--word-diff=plain` option.
+  
+  Similar to `GitUtils.DiffHighlighter`, it exposes the underlying streams via:
+
+  - `getInputStream(): stream.PassThrough`
+  - `getOutputStream(): stream.PassThrough`
+
+  Requires:
+  - _styles?_:
+
+    ```ts
+    {
+      lineRemoved?: (text: string) => string,
+      lineAdded?: (text: string) => string,
+      areaRemoved?: (text: string) => string,
+      areaAdded?: (text: string) => string
+    }
+    ```
+
 - **`Phase`:** A simple wrapper for "phase" entities (with validation). A "phase" is a description
   of a unit of work, including an ID, a short description, a list of the tasks involved and an error
   message (or code) specific to this "phase".

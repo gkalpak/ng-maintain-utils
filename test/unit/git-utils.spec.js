@@ -9,6 +9,8 @@ let PassThrough = stream.PassThrough;
 
 // Imports - Local
 let CleanUper = require('../../lib/clean-uper');
+let DiffHighlighter = require('../../lib/diff-highlighter');
+let DiffHighlighter2 = require('../../lib/diff-highlighter2');
 let GitUtils = require('../../lib/git-utils');
 let Utils = require('../../lib/utils');
 
@@ -30,8 +32,16 @@ describe('GitUtils', () => {
   });
 
   describe('GitUtils#DiffHighlighter', () => {
-    it('should be a function', () => {
+    it('should be a function (DiffHighlighter)', () => {
       expect(GitUtils.DiffHighlighter).toEqual(jasmine.any(Function));
+      expect(GitUtils.DiffHighlighter).toBe(DiffHighlighter);
+    });
+  });
+
+  describe('GitUtils#DiffHighlighter2', () => {
+    it('should be a function (DiffHighlighter2)', () => {
+      expect(GitUtils.DiffHighlighter2).toEqual(jasmine.any(Function));
+      expect(GitUtils.DiffHighlighter2).toBe(DiffHighlighter2);
     });
   });
 
@@ -195,6 +205,60 @@ describe('GitUtils', () => {
 
       gitUtils.diffWithHighlight('foo').
         catch(() => gitUtils.diffWithHighlight('bar')).
+        catch(done);
+    });
+  });
+
+  describe('#diffWithHighlight2()', () => {
+    let gitCmdTmpl = 'git diff --no-color --word-diff=plain <commit>';
+    let lessCmdTmpl = 'less --no-init --raw-control-chars';
+
+    it('should return a promise', () => {
+      expectToReturnPromise('diffWithHighlight2', ['foo']);
+    });
+
+    it(`should call \`${gitCmdTmpl}\` and \`${lessCmdTmpl}\` (with I/O streams)`, () => {
+      let gitCmd = gitCmdTmpl.replace('<commit>', 'foo');
+      let lessCmd = lessCmdTmpl;
+      let ptStream = jasmine.any(PassThrough);
+
+      createGitUtils().diffWithHighlight2('foo');
+
+      expect(utils.spawnAsPromised).toHaveBeenCalledTimes(2);
+      expect(utils.spawnAsPromised).toHaveBeenCalledWith(gitCmd, null, ptStream);
+      expect(utils.spawnAsPromised).toHaveBeenCalledWith(lessCmd, ptStream);
+    });
+
+    it('should pipe the output of `git diff ...` to the input of `less ...`', done => {
+      createGitUtils().diffWithHighlight2('foo');
+
+      let outputStream = utils.spawnAsPromised.calls.argsFor(0)[2];
+      let inputStream = utils.spawnAsPromised.calls.argsFor(1)[1];
+
+      inputStream.on('data', data => {
+        expect(String(data).trim()).toBe('foo');
+        done();
+      });
+
+      outputStream.write('foo\n');
+    });
+
+    it('should resolve when both commands are completed', done => {
+      utils.spawnAsPromised.and.returnValues(Promise.resolve(), Promise.resolve());
+
+      createGitUtils().
+        diffWithHighlight2('foo').
+        then(done);
+    });
+
+    it('should reject when any command errors', done => {
+      utils.spawnAsPromised.and.returnValues(Promise.reject(), Promise.resolve(),
+                                             Promise.resolve(), Promise.reject());
+
+      let gitUtils = createGitUtils();
+
+      gitUtils.diffWithHighlight2('foo').
+        catch(() => gitUtils.diffWithHighlight2('bar')).
         catch(done);
     });
   });
