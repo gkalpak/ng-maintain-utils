@@ -7,12 +7,13 @@ repositories.
 
 ## Usage
 
-_You_ should generally not use it. You would use tools built on top of it, for example:
+**You** should generally not use it. You would use tools built on top of it, for example:
 
 - [ng-cla-check][ng-cla-check]
+- [ng-maintain][ng-maintain]
 - [ng-pr-merge][ng-pr-merge]
 
-_I_ may use it for building other tools (see above). Here is a brief overview of what's in the box:
+**I** may use it for building other tools (see above). Here is a brief overview of what's in the box:
 
 - **`AbstractCli`:** Can serve as a base-class for creating a `Cli` object that can orchestrate the
   execution of some type of work, based on a list of "raw" command-line arguments. It can display
@@ -235,4 +236,5 @@ The following test-types/modes are available:
 [build-status-image]: https://travis-ci.org/gkalpak/ng-maintain-utils.svg?branch=master
 [diff-highlight]: https://github.com/git/git/blob/master/contrib/diff-highlight/README
 [ng-cla-check]: https://www.npmjs.com/package/@gkalpak/ng-cla-check
+[ng-maintain]: https://www.npmjs.com/package/@gkalpak/ng-maintain
 [ng-pr-merge]: https://www.npmjs.com/package/@gkalpak/ng-pr-merge
