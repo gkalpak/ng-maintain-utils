@@ -114,6 +114,7 @@ _I_ may use it for building other tools (see above). Here is a brief overview of
   - `deleteBranch(branch: string, force?: boolean): Promise`
   - `diff(commit: string, noColor?: boolean): Promise`
   - `diffWithHighlight(commit: string): Promise`
+  - `diffWithHighlight2(commit: string): Promise`
   - `getCommitMessage(commit: string): Promise<string>`
   - `getLastCommitMessage(): Promise<string>`
   - `log(oneline?: boolean, count?: number, noDecorate?: boolean): Promise`
