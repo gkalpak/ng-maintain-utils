@@ -73,6 +73,16 @@ describe('DiffHighlighter', () => {
       dh._input.emit('end');
     });
 
+    it('should process any pending changes on `end`', () => {
+      spyOn(dh, '_processChanges');
+
+      expect(dh._processChanges).not.toHaveBeenCalled();
+
+      dh._input.emit('end');
+
+      expect(dh._processChanges).toHaveBeenCalled();
+    });
+
     it('should forward `error` event from `_input` to `_output`', done => {
       dh._output.on('error', err => {
         expect(err).toBe('foo');
@@ -80,6 +90,17 @@ describe('DiffHighlighter', () => {
       });
 
       dh._input.emit('error', 'foo');
+    });
+
+    it('should process any pending changes on `error`', () => {
+      spyOn(dh, '_processChanges');
+
+      expect(dh._processChanges).not.toHaveBeenCalled();
+
+      dh._output.on('error', () => {});
+      dh._input.emit('error', 'foo');
+
+      expect(dh._processChanges).toHaveBeenCalled();
     });
 
     it('should create a `readline` interface (with appropriate options)', () => {
