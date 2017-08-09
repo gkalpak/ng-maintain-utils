@@ -198,8 +198,8 @@ describe('GitUtils', () => {
     });
 
     it('should reject when any command errors', done => {
-      utils.spawnAsPromised.and.returnValues(Promise.reject(), Promise.resolve(),
-                                             Promise.resolve(), Promise.reject());
+      utils.spawnAsPromised.and.returnValues(
+        Promise.reject(), Promise.resolve(), Promise.resolve(), Promise.reject());
 
       let gitUtils = createGitUtils();
 
@@ -252,8 +252,8 @@ describe('GitUtils', () => {
     });
 
     it('should reject when any command errors', done => {
-      utils.spawnAsPromised.and.returnValues(Promise.reject(), Promise.resolve(),
-                                             Promise.resolve(), Promise.reject());
+      utils.spawnAsPromised.and.returnValues(
+        Promise.reject(), Promise.resolve(), Promise.resolve(), Promise.reject());
 
       let gitUtils = createGitUtils();
 
@@ -502,7 +502,7 @@ describe('GitUtils', () => {
       gitUtils.
         setLastCommitMessage('foo').
         then(() => expect(gitUtils.writeFileAsPromised).
-            toHaveBeenCalledWith(jasmine.any(String), 'foo')).
+          toHaveBeenCalledWith(jasmine.any(String), 'foo')).
         then(done);
 
       setTimeout(() => deferred.resolve());
@@ -702,8 +702,8 @@ describe('GitUtils', () => {
     gitUtils[methodName].apply(gitUtils, args);
 
     let spy = utils.execAsPromised.calls.count() ?
-        utils.execAsPromised :
-        utils.spawnAsPromised;
+      utils.execAsPromised :
+      utils.spawnAsPromised;
 
     expect(spy).toHaveBeenCalledWith(command);
   }

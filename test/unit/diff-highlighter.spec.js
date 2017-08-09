@@ -1,7 +1,6 @@
 'use strict';
 
 // Imports
-let chalk = require('chalk');
 let os = require('os');
 let readline = require('readline');
 let stream = require('stream');
@@ -14,18 +13,9 @@ let DiffHighlighter = require('../../lib/diff-highlighter');
 
 // Tests
 describe('DiffHighlighter', () => {
-  let originalStyles = getStyles(['bgGreen', 'bgRed', 'black', 'bold', 'green', 'red', 'white']);
   let dh;
 
-  beforeEach(() => {
-    mockStyles(Object.keys(originalStyles));
-
-    dh = new DiffHighlighter();
-  });
-
-  afterEach(() => {
-    restoreStyles(originalStyles);
-  });
+  beforeEach(() => dh = new DiffHighlighter());
 
   describe('#constructor()', () => {
     it('should initialize `_styles` (falling back to default values if necessary)', () => {
@@ -392,6 +382,15 @@ describe('DiffHighlighter', () => {
   });
 
   describe('#_highlightChange()', () => {
+    let mockStyles = {
+      lineRemoved: str => str && `<red><bold>${str}</bold></red>`,
+      lineAdded: str => str && `<green><bold>${str}</bold></green>`,
+      areaRemoved: str => str && `<bgRed><white>${str}</white></bgRed>`,
+      areaAdded: str => str && `<bgGreen><black>${str}</black></bgGreen>`
+    };
+
+    beforeEach(() => dh = new DiffHighlighter(mockStyles));
+
     it('should add a `highlighted` property (string) to the specified `change`', () => {
       let change1 = {type: '-', line: dh._breakUpLine('Remove this')};
       let change2 = {type: '-', line: dh._breakUpLine('Remove this')};
@@ -498,11 +497,11 @@ describe('DiffHighlighter', () => {
       dh._highlightChange(change2);
 
       expect(change1.highlighted).toBe(
-          '<red><bold>-</bold></red>' +
-          '<bgRed><white>please remove this</white></bgRed>');
+        '<red><bold>-</bold></red>' +
+        '<bgRed><white>please remove this</white></bgRed>');
       expect(change2.highlighted).toBe(
-          '<green><bold>+</bold></green>' +
-          '<bgGreen><black> please add that  </black></bgGreen>');
+        '<green><bold>+</bold></green>' +
+        '<bgGreen><black> please add that  </black></bgGreen>');
     });
 
     it('should merge prefix, suffix and whitespace if the different area is empty', () => {
@@ -528,20 +527,20 @@ describe('DiffHighlighter', () => {
       dh._highlightChange(change4, null, 3);
 
       expect(change1.highlighted).toBe(
-          '<red><bold>-please </bold></red>' +
-          '<bgRed><white>remove this</white></bgRed>');
+        '<red><bold>-please </bold></red>' +
+        '<bgRed><white>remove this</white></bgRed>');
       expect(change2.highlighted).toBe(
-          '<green><bold>+ please </bold></green>' +
-          '<bgGreen><black>add that</black></bgGreen>' +
-          '<green><bold>  </bold></green>');
+        '<green><bold>+ please </bold></green>' +
+        '<bgGreen><black>add that</black></bgGreen>' +
+        '<green><bold>  </bold></green>');
       expect(change3.highlighted).toBe(
-          '<red><bold>-</bold></red>' +
-          '<bgRed><white>please remove</white></bgRed>' +
-          '<red><bold> me</bold></red>');
+        '<red><bold>-</bold></red>' +
+        '<bgRed><white>please remove</white></bgRed>' +
+        '<red><bold> me</bold></red>');
       expect(change4.highlighted).toBe(
-          '<green><bold>+ </bold></green>' +
-          '<bgGreen><black>please add</black></bgGreen>' +
-          '<green><bold> me  </bold></green>');
+        '<green><bold>+ </bold></green>' +
+        '<bgGreen><black>please add</black></bgGreen>' +
+        '<green><bold> me  </bold></green>');
     });
   });
 
@@ -728,30 +727,4 @@ describe('DiffHighlighter', () => {
       expect(dh.getOutputStream()).toBe(dh._output);
     });
   });
-
-  // Helpers
-  function getStyles(names) {
-    let styles = {};
-
-    names.forEach(name => styles[name] = {
-      open: chalk.styles[name].open,
-      close: chalk.styles[name].close
-    });
-
-    return styles;
-  }
-
-  function mockStyles(names) {
-    names.forEach(name => {
-      chalk.styles[name].open = `<${name}>`;
-      chalk.styles[name].close = `</${name}>`;
-    });
-  }
-
-  function restoreStyles(styles) {
-    Object.keys(styles).forEach(name => {
-      chalk.styles[name].open = styles[name].open;
-      chalk.styles[name].close = styles[name].close;
-    });
-  }
 });

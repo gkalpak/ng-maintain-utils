@@ -225,12 +225,10 @@ describe('AbstractCli', () => {
       chalk.enabled = true;
       cli._displayUsage(message);
 
-      let lines = message.split('\n');
       let logged = console.log.calls.mostRecent().args[0];
 
       expect(logged).not.toContain(message);
-      expect(logged).toContain(lines[0]);
-      expect(logged).toContain(lines.slice(1).join('\n'));
+      expect(logged).toContain(`${chalk.bold('foo')}\n${chalk.gray('bar\nbaz\nqux')}`);
     });
   });
 
@@ -655,12 +653,12 @@ describe('AbstractCli', () => {
       spyOn(cli, '_theUnhappyEnd').and.callFake(err => Promise.reject(err));
       spyOn(cli, 'getPhases').and.returnValue([]);
       cli._getAndValidateInput.and.returnValues(
-          Promise.reject({id: 1}),
-          Promise.resolve({id: 2, version: true}),
-          Promise.resolve({id: 3, usage: true}),
-          Promise.resolve({id: 4, instructions: true}),
-          Promise.resolve({id: 5}),
-          Promise.resolve({id: 6}));
+        Promise.reject({id: 1}),
+        Promise.resolve({id: 2, version: true}),
+        Promise.resolve({id: 3, usage: true}),
+        Promise.resolve({id: 4, instructions: true}),
+        Promise.resolve({id: 5}),
+        Promise.resolve({id: 6}));
       doWorkSpy.and.returnValues(Promise.resolve({id: 5}), Promise.reject({id: 6}));
 
       let promises = [

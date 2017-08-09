@@ -1,7 +1,6 @@
 'use strict';
 
 // Imports
-let chalk = require('chalk');
 let os = require('os');
 let readline = require('readline');
 let stream = require('stream');
@@ -14,18 +13,9 @@ let DiffHighlighter2 = require('../../lib/diff-highlighter2');
 
 // Tests
 describe('DiffHighlighter2', () => {
-  let originalStyles = getStyles(['bgGreen', 'bgRed', 'black', 'bold', 'green', 'red', 'white']);
   let dh;
 
-  beforeEach(() => {
-    mockStyles(Object.keys(originalStyles));
-
-    dh = new DiffHighlighter2();
-  });
-
-  afterEach(() => {
-    restoreStyles(originalStyles);
-  });
+  beforeEach(() => dh = new DiffHighlighter2());
 
   describe('#constructor()', () => {
     it('should initialize `_styles` (falling back to default values if necessary)', () => {
@@ -290,47 +280,56 @@ describe('DiffHighlighter2', () => {
   });
 
   describe('#_highlightLine()', () => {
+    let mockStyles = {
+      lineRemoved: str => str && `<red><bold>${str}</bold></red>`,
+      lineAdded: str => str && `<green><bold>${str}</bold></green>`,
+      areaRemoved: str => str && `<bgRed><white>${str}</white></bgRed>`,
+      areaAdded: str => str && `<bgGreen><black>${str}</black></bgGreen>`
+    };
+
+    beforeEach(() => dh = new DiffHighlighter2(mockStyles));
+
     it('should highlight removed parts of the line', () => {
       expect(dh._highlightLine('Removed', '[-line 1-]')).toContain(
-          '<bgRed><white>line 1</white></bgRed>');
+        '<bgRed><white>line 1</white></bgRed>');
 
       expect(dh._highlightLine('Removed', 'line[-e-] 1')).toContain(
-          '<bgRed><white>e</white></bgRed>');
+        '<bgRed><white>e</white></bgRed>');
     });
 
     it('should highlight added parts of the line', () => {
       expect(dh._highlightLine('Added', '{+line 1+}')).toContain(
-          '<bgGreen><black>line 1</black></bgGreen>');
+        '<bgGreen><black>line 1</black></bgGreen>');
 
       expect(dh._highlightLine('Added', 'line{+e+} 1')).toContain(
-          '<bgGreen><black>e</black></bgGreen>');
+        '<bgGreen><black>e</black></bgGreen>');
     });
 
     it('should highlight unchanged parts of the line', () => {
       expect(dh._highlightLine('Removed', 'li[-ne-] 1')).toBe(
-          '<red><bold>li</bold></red><bgRed><white>ne</white></bgRed><red><bold> 1</bold></red>');
+        '<red><bold>li</bold></red><bgRed><white>ne</white></bgRed><red><bold> 1</bold></red>');
 
       var line = '[-long-] line {+with+}[-without-] much [-else -]there';
       expect(dh._highlightLine('Removed', line)).toBe(
-          '<bgRed><white>long</white></bgRed>' +
-          '<red><bold> line {+with+}</bold></red>' +
-          '<bgRed><white>without</white></bgRed>' +
-          '<red><bold> much </bold></red>' +
-          '<bgRed><white>else </white></bgRed>' +
-          '<red><bold>there</bold></red>');
+        '<bgRed><white>long</white></bgRed>' +
+        '<red><bold> line {+with+}</bold></red>' +
+        '<bgRed><white>without</white></bgRed>' +
+        '<red><bold> much </bold></red>' +
+        '<bgRed><white>else </white></bgRed>' +
+        '<red><bold>there</bold></red>');
 
       expect(dh._highlightLine('Added', line)).toBe(
-          '<green><bold>[-long-] line </bold></green>' +
-          '<bgGreen><black>with</black></bgGreen>' +
-          '<green><bold>[-without-] much [-else -]there</bold></green>');
+        '<green><bold>[-long-] line </bold></green>' +
+        '<bgGreen><black>with</black></bgGreen>' +
+        '<green><bold>[-without-] much [-else -]there</bold></green>');
 
       expect(dh._highlightLine('Added', 'li[-ne-] 1')).toBe(
-          '<green><bold>li[-ne-] 1</bold></green>');
+        '<green><bold>li[-ne-] 1</bold></green>');
 
       expect(dh._highlightLine('Added', 'li{+ne+} 1')).toBe(
-          '<green><bold>li</bold></green>' +
-          '<bgGreen><black>ne</black></bgGreen>' +
-          '<green><bold> 1</bold></green>');
+        '<green><bold>li</bold></green>' +
+        '<bgGreen><black>ne</black></bgGreen>' +
+        '<green><bold> 1</bold></green>');
     });
 
     it('should highlight all parts of the line (in other words)', () => {
@@ -338,22 +337,22 @@ describe('DiffHighlighter2', () => {
                  '{+added (+)+} and {+[un-changed]+} parts';
 
       expect(dh._highlightLine('Removed', line)).toBe(
-          '<red><bold>this {+is+} one </bold></red>' +
-          '<bgRed><white>long</white></bgRed>' +
-          '<red><bold> line </bold></red>' +
-          '<bgRed><white>which</white></bgRed>' +
-          '<red><bold> contains </bold></red>' +
-          '<bgRed><white>removed (-)</white></bgRed>' +
-          '<red><bold>, {+added (+)+} and {+[un-changed]+} parts</bold></red>');
+        '<red><bold>this {+is+} one </bold></red>' +
+        '<bgRed><white>long</white></bgRed>' +
+        '<red><bold> line </bold></red>' +
+        '<bgRed><white>which</white></bgRed>' +
+        '<red><bold> contains </bold></red>' +
+        '<bgRed><white>removed (-)</white></bgRed>' +
+        '<red><bold>, {+added (+)+} and {+[un-changed]+} parts</bold></red>');
 
       expect(dh._highlightLine('Added', line)).toBe(
-          '<green><bold>this </bold></green>' +
-          '<bgGreen><black>is</black></bgGreen>' +
-          '<green><bold> one [-long-] line [-which-] contains [-removed (-)-], </bold></green>' +
-          '<bgGreen><black>added (+)</black></bgGreen>' +
-          '<green><bold> and </bold></green>' +
-          '<bgGreen><black>[un-changed]</black></bgGreen>' +
-          '<green><bold> parts</bold></green>');
+        '<green><bold>this </bold></green>' +
+        '<bgGreen><black>is</black></bgGreen>' +
+        '<green><bold> one [-long-] line [-which-] contains [-removed (-)-], </bold></green>' +
+        '<bgGreen><black>added (+)</black></bgGreen>' +
+        '<green><bold> and </bold></green>' +
+        '<bgGreen><black>[un-changed]</black></bgGreen>' +
+        '<green><bold> parts</bold></green>');
     });
   });
 
@@ -530,30 +529,4 @@ describe('DiffHighlighter2', () => {
       expect(dh.getOutputStream()).toBe(dh._output);
     });
   });
-
-  // Helpers
-  function getStyles(names) {
-    let styles = {};
-
-    names.forEach(name => styles[name] = {
-      open: chalk.styles[name].open,
-      close: chalk.styles[name].close
-    });
-
-    return styles;
-  }
-
-  function mockStyles(names) {
-    names.forEach(name => {
-      chalk.styles[name].open = `<${name}>`;
-      chalk.styles[name].close = `</${name}>`;
-    });
-  }
-
-  function restoreStyles(styles) {
-    Object.keys(styles).forEach(name => {
-      chalk.styles[name].open = styles[name].open;
-      chalk.styles[name].close = styles[name].close;
-    });
-  }
 });

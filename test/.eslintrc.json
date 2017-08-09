@@ -7,7 +7,10 @@
     "jasmine"
   ],
   "rules": {
+    "jasmine/new-line-before-expect": 0,
+    "jasmine/no-expect-in-setup-teardown": 0,
     "jasmine/no-spec-dupes": [1, "branch"],
-    "jasmine/no-suite-dupes": [1, "branch"]
+    "jasmine/no-suite-dupes": [1, "branch"],
+    "jasmine/prefer-toHaveBeenCalledWith": 0
   }
 }

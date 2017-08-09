@@ -38,21 +38,21 @@ describe('AbstractCli', () => {
 
     let phases = [
       new Phase(
-          'One', 'The beginning',
-          ['Do this (with {{ foo }})', 'Do that (with {{ bar }})'],
-          'Ooops, there was ONE error'),
+        'One', 'The beginning',
+        ['Do this (with {{ foo }})', 'Do that (with {{ bar }})'],
+        'Ooops, there was ONE error'),
       new Phase(
-          'Two', 'Keep going',
-          ['Do not do this', 'I warned you'],
-          'Ooops, there were TWO errors'),
+        'Two', 'Keep going',
+        ['Do not do this', 'I warned you'],
+        'Ooops, there were TWO errors'),
       new Phase(
-          'Four', 'Who needs 3',
-          [],
-          'Ooops, there were FOUR errors'),
+        'Four', 'Who needs 3',
+        [],
+        'Ooops, there were FOUR errors'),
       new Phase(
-          'Five', 'The extra mile',
-          ['Do this better (with {{ baz }})', 'Do that better (with {{ qux }})'],
-          'Ooops, there were FIVE errors')
+        'Five', 'The extra mile',
+        ['Do this better (with {{ baz }})', 'Do that better (with {{ qux }})'],
+        'Ooops, there were FIVE errors')
     ];
 
     class MyCli extends AbstractCli {

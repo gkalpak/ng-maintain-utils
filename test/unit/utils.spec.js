@@ -491,8 +491,9 @@ describe('Utils', () => {
     function createMockProcess() {
       let proc = new ChildProcess();
 
-      proc.stdin = {};
+      // eslint-disable-next-line jasmine/no-unsafe-spy
       proc.stdout = {pipe: jasmine.createSpy('mockProcess.stdout.pipe')};
+      proc.stdin = {};
 
       return proc;
     }
