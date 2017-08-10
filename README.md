@@ -59,13 +59,13 @@ repositories.
 - **`CleanUper`:** A utility to help coordinate arbitrary tasks with their associated clean-up
   process.
 
-  The general idea is this: 
+  The general idea is this:
   1. Schedule a task to clean up after `something`.
   2. Do `something`.
   3. ...possibly do other things here...
   4. If anything goes wrong, the app will be able to clean up (or show instructions to the user).
   5. When cleaning up after `something` is no longer necessary, unschedule the clean-up task.
-  
+
   Provides the following methods:
   - `cleanUp(listOnly: boolean): Promise`: Perform all clean-up tasks (or just list them).
     <sub>(Either way, the clean-up task queue is emptied.)</sub>
@@ -97,7 +97,7 @@ repositories.
   - `versionInfo`: A `{name: string, version: string}` map with values retrieved from the main
     module's `package.json` (i.e. the first `package.json` to be found starting from the main file's
     directory and moving upwards).
-  
+
   Requires:
     - _messages_: `{[messageKey: string]: string}`
     - _argSpecs_: `ArgSpec[]`
@@ -130,11 +130,11 @@ repositories.
   Requires:
     - _cleanUper_: `CleanUper`
     - _utils_: `Utils`
-  
+
 - **`GitUtils.DiffHighlighter`:** Can be used to enhance a diff by highlighting areas of interest.
   The general implementation is loosely based on the idea of [diff-highlight][diff-highlight],
   although the matching heuristics and coloring (among other things) are different.
-  
+
   It exposes the underlying streams via:
 
   - `getInputStream(): stream.PassThrough`
@@ -154,9 +154,9 @@ repositories.
 
 - **`GitUtils.DiffHighlighter2`:** An alternative, API-compatible implementation of
   `GitUtils.DiffHighlighter`. The highlighting is more accurate, as it is able to only highlight the
-  regions that have changed. The main drawback is that it fails to show removed/added empty lines, 
+  regions that have changed. The main drawback is that it fails to show removed/added empty lines,
   because of its dependency on `Git`s `--word-diff=plain` option.
-  
+
   Similar to `GitUtils.DiffHighlighter`, it exposes the underlying streams via:
 
   - `getInputStream(): stream.PassThrough`
@@ -196,7 +196,7 @@ repositories.
   - `reportAndRejectFnGen()`: Generates a callback that will report the specified error (plus any
     extra error provided during invokation), will offer to clean up (if there are pending tasks and
     not configured otherwise) and return a rejection.
-  
+
   Requires:
     - _cleanUper_: `CleanUper`
     - _errorMessages_: `{[errorCode: string]: string}`
@@ -206,28 +206,29 @@ repositories.
   - `asPromised()`: Convert callback-based functions to promise-based.
   - `interpolate()`: Replace `{{...}}` placeholders in a string with values.
   - `parseArgs()`: Parse command-line arguments (and remove surrounding quotes).
-  - `spawnAsPromised`: Spawn a process to run a (series of) command(s) with support for piping.
-  - `waitAsPromised`: `setTimeout()` wrapped in a promise.
+  - `resetOutputStyleOnExit()`: Ensure the output style is reset when a process exists.
+  - `spawnAsPromised()`: Spawn a process to run a (series of) command(s) with support for piping.
+  - `waitAsPromised()`: `setTimeout()` wrapped in a promise.
 
 ## Testing
 
 The following test-types/modes are available:
 
-- **Code-linting:** `npm run lint`  
+- **Code-linting:** `npm run lint`
   _Lint JavaScript files using ESLint._
 
-- **Unit tests:** `npm run test-unit`  
+- **Unit tests:** `npm run test-unit`
   _Run all the unit tests once. These tests are quick and suitable to be run on every change._
 
-- **E2E tests:** `npm run test-e2e`  
+- **E2E tests:** `npm run test-e2e`
   _Run all the end-to-end tests once. These test may hit actual API endpoints or perform expensive
   I/O operations and are considerably slower than unit tests._
 
-- **All tests:** `npm test` / `npm run test`  
+- **All tests:** `npm test` / `npm run test`
   _Run all of the above tests (code-linting, unit tests, e2e tests). This command is automatically
   run before `npm version` and `npm publish`._
 
-- **"Watch" mode:** `npm run test-watch`  
+- **"Watch" mode:** `npm run test-watch`
   _Watch all files and rerun the unit tests whenever something changes. For performance reasons,
   code-linting and e2e tests are omitted._
 
