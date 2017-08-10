@@ -13,12 +13,15 @@ let Utils = require('../../lib/utils');
 
 // Tests
 describe('AbstractCli', () => {
+  class Cli extends AbstractCli {}
+
   let chalkEnabled;
   let config;
   let cli;
 
   beforeEach(() => {
-    class Cli extends AbstractCli {}
+    spyOn(console, 'log');
+    spyOn(Utils.prototype, 'resetOutputStyleOnExit');
 
     chalkEnabled = chalk.enabled;
     chalk.enabled = false;
@@ -39,8 +42,6 @@ describe('AbstractCli', () => {
       }
     };
     cli = new Cli(config);
-
-    spyOn(console, 'log');
   });
 
   afterEach(() => {
@@ -66,6 +67,22 @@ describe('AbstractCli', () => {
 
     it('should create a `UiUtils` instance', () => {
       expect(cli._uiUtils).toEqual(jasmine.any(UiUtils));
+    });
+
+    it('should set the process up for output style reset on exit', () => {
+      expect(Utils.prototype.resetOutputStyleOnExit).toHaveBeenCalledWith(process);
+    });
+
+    it('should not set the process up for style reset if already set-up', () => {
+      Utils.prototype.resetOutputStyleOnExit.calls.reset();
+
+
+      process.$$resetOutputStyleOnExit = true;
+      new Cli(config);
+
+      expect(Utils.prototype.resetOutputStyleOnExit).not.toHaveBeenCalled();
+
+      delete process.$$resetOutputStyleOnExit;
     });
   });
 
@@ -461,7 +478,7 @@ describe('AbstractCli', () => {
     let errorCb;
 
     beforeEach(() => {
-      errorCb = jasmine.createSpy('errorCb').and.returnValue(Promise.reject());
+      errorCb = jasmine.createSpy('errorCb').and.callFake(() => Promise.reject());
 
       spyOn(cli._uiUtils, 'reportAndRejectFnGen').and.returnValue(errorCb);
     });
