@@ -48,11 +48,11 @@ describe('Utils', () => {
     });
 
     it('should support piping from stdout', done => {
-      let command = 'echo "Hello, world!"';
+      let command = 'echo Hello, world!';
       let response = runCommand(command);
 
       response.promise.
-        then(() => expect(response.stdout.trim()).toBe('"Hello, world!"')).
+        then(() => expect(response.stdout.trim()).toBe('Hello, world!')).
         then(done);
     });
 
@@ -68,15 +68,15 @@ describe('Utils', () => {
     });
 
     it('should support command piping', done => {
-      let command1 = `echo "Hello, world!" | ${nodeCatCommand} | ${nodeCatCommand}`;
+      let command1 = `echo Hello, world! | ${nodeCatCommand} | ${nodeCatCommand}`;
       let response1 = runCommand(command1);
 
-      let command2 = `echo "Hello, world!" | ${nodeCatCommand} | ${nodeNoopCommand}`;
+      let command2 = `echo Hello, world! | ${nodeCatCommand} | ${nodeNoopCommand}`;
       let response2 = runCommand(command2);
 
       Promise.
         all([
-          response1.promise.then(() => expect(response1.stdout.trim()).toBe('"Hello, world!"')),
+          response1.promise.then(() => expect(response1.stdout.trim()).toBe('Hello, world!')),
           response2.promise.then(() => expect(response2.stdout.trim()).toBe(''))
         ]).
         then(done);
