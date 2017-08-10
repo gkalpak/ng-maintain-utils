@@ -2,6 +2,9 @@
 
 // Imports
 let childProcess = require('child_process');
+let events = require('events');
+
+let EventEmitter = events.EventEmitter;
 
 // Imports - Local
 let Utils = require('../../lib/utils');
@@ -231,6 +234,86 @@ describe('Utils', () => {
       let output = {_: ['\'foo bar\'', '"baz qux"'], foo: '\'bar\'', baz: '"qux"'};
 
       expect(utils.parseArgs(input)).toEqual(output);
+    });
+  });
+
+  describe('#resetOutputStyleOnExit()', () => {
+    let mockProc;
+
+    beforeEach(() => {
+
+      mockProc = new EventEmitter();
+      mockProc.exit = jasmine.createSpy('mockProc.exit');
+      mockProc.stdout = {
+        write: jasmine.createSpy('mockProc.stdout.write')
+      };
+
+      spyOn(console, 'warn');
+      spyOn(mockProc, 'on').and.callThrough();
+
+      utils.resetOutputStyleOnExit(mockProc);
+    });
+
+    it('should throw if no process specified', () => {
+      expect(utils.resetOutputStyleOnExit).toThrowError('No process specified.');
+    });
+
+    it('should reset the output style on `exit`', () => {
+      expect(mockProc.stdout.write).not.toHaveBeenCalled();
+
+      mockProc.emit('EXIT');
+      expect(mockProc.stdout.write).not.toHaveBeenCalled();
+
+      mockProc.emit('exit');
+      expect(mockProc.stdout.write).toHaveBeenCalledWith('\u001b[0m');
+    });
+
+    it('should reset the output style on `SIGINT`', () => {
+      expect(mockProc.stdout.write).not.toHaveBeenCalled();
+
+      mockProc.emit('sigint');
+      expect(mockProc.stdout.write).not.toHaveBeenCalled();
+
+      mockProc.emit('SIGINT');
+      expect(mockProc.stdout.write).toHaveBeenCalledWith('\u001b[0m');
+    });
+
+    it('should exit the process (after resetting the output stlye)', () => {
+      mockProc.stdout.write.and.callFake(() => expect(mockProc.exit).not.toHaveBeenCalled());
+      mockProc.exit.and.callFake(() => expect(mockProc.stdout.write).toHaveBeenCalled());
+
+      mockProc.emit('exit');
+      expect(mockProc.exit).toHaveBeenCalled();
+
+      mockProc.stdout.write.calls.reset();
+      mockProc.exit.calls.reset();
+      expect(mockProc.exit).not.toHaveBeenCalled();
+
+      mockProc.emit('SIGINT');
+      expect(mockProc.exit).toHaveBeenCalled();
+    });
+
+    it('should exit the process with the emitted code', () => {
+      mockProc.emit('exit', 42);
+      expect(mockProc.exit).toHaveBeenCalledWith(42);
+
+      mockProc.emit('SIGINT', 1337);
+      expect(mockProc.exit).toHaveBeenCalledWith(1337);
+    });
+
+    it('should warn and do nothing if the process is already set up for reset', () => {
+      let errorMsg = 'The process is already set up for output style reset on exit.';
+
+      expect(console.warn).not.toHaveBeenCalled();
+      expect(mockProc.on).toHaveBeenCalledTimes(2);
+      expect(mockProc.on).toHaveBeenCalledWith('exit', jasmine.any(Function));
+      expect(mockProc.on).toHaveBeenCalledWith('SIGINT', jasmine.any(Function));
+
+      mockProc.on.calls.reset();
+
+      utils.resetOutputStyleOnExit(mockProc);
+      expect(console.warn).toHaveBeenCalledWith(errorMsg);
+      expect(mockProc.on).not.toHaveBeenCalled();
     });
   });
 
