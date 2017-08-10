@@ -207,7 +207,7 @@ repositories.
   - `interpolate()`: Replace `{{...}}` placeholders in a string with values.
   - `parseArgs()`: Parse command-line arguments (and remove surrounding quotes).
   - `resetOutputStyleOnExit()`: Ensure the output style is reset when a process exists.
-  - `spawnAsPromised()`: Spawn a process to run a (series of) command(s) with support for piping.
+  - `spawnAsPromised()`: Spawn a sub-shell to run a (series of) command(s) with support for piping.
   - `waitAsPromised()`: `setTimeout()` wrapped in a promise.
 
 ## Testing

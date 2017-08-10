@@ -335,18 +335,17 @@ describe('Utils', () => {
     });
 
     it('should parse the specified command (respecting double-quoted values)', () => {
+      let parsedArgs = ['"bar"', '--baz', '--qux="foo bar"', '"baz qux"'];
       let anyObj = jasmine.any(Object);
-      let parsedArgs;
 
       utils.spawnAsPromised('foo     "bar" --baz --qux="foo bar" "baz qux"');
-      parsedArgs = ['bar', '--baz', '--qux="foo bar"', 'baz qux'];
-
       expect(childProcess.spawn).toHaveBeenCalledWith('foo', parsedArgs, anyObj);
 
       utils.spawnAsPromised('"foo"     "bar" --baz --qux="foo bar" "baz qux"');
-      parsedArgs = ['bar', '--baz', '--qux="foo bar"', 'baz qux'];
+      expect(childProcess.spawn).toHaveBeenCalledWith('"foo"', parsedArgs, anyObj);
 
-      expect(childProcess.spawn).toHaveBeenCalledWith('foo', parsedArgs, anyObj);
+      utils.spawnAsPromised('"f o o"     "bar" --baz --qux="foo bar" "baz qux"');
+      expect(childProcess.spawn).toHaveBeenCalledWith('"f o o"', parsedArgs, anyObj);
     });
 
     it('should support command "piping" (and spawn a process for each command)', () => {
@@ -357,56 +356,61 @@ describe('Utils', () => {
       expect(childProcess.spawn).toHaveBeenCalledTimes(3);
 
       expect(childProcess.spawn.calls.argsFor(0)).toEqual(['foo', ['bar'], anyObj]);
-      expect(childProcess.spawn.calls.argsFor(1)).toEqual(['bar', ['baz'], anyObj]);
-      expect(childProcess.spawn.calls.argsFor(2)).toEqual(['baz', ['qux'], anyObj]);
+      expect(childProcess.spawn.calls.argsFor(1)).toEqual(['bar', ['"baz"'], anyObj]);
+      expect(childProcess.spawn.calls.argsFor(2)).toEqual(['"baz"', ['qux'], anyObj]);
 
       expect(spawned[0].stdout.pipe.calls.argsFor(0)[0]).toBe(spawned[1].stdin);
       expect(spawned[1].stdout.pipe.calls.argsFor(0)[0]).toBe(spawned[2].stdin);
     });
 
+    it('should spawn a sub-shell', () => {
+      utils.spawnAsPromised('foo bar');
+      expect(childProcess.spawn.calls.argsFor(0)[2].shell).toBe(true);
+    });
+
     it('should use appropriate values for `stdio`', () => {
-      let expectedOptions;
+      let expectedStdio;
 
       utils.spawnAsPromised('foo bar');
-      expectedOptions = {stdio: ['inherit', 'inherit', 'inherit']};
+      expectedStdio = ['inherit', 'inherit', 'inherit'];
 
-      expect(childProcess.spawn.calls.argsFor(0)[2]).toEqual(expectedOptions);
+      expect(childProcess.spawn.calls.argsFor(0)[2].stdio).toEqual(expectedStdio);
       childProcess.spawn.calls.reset();
 
       utils.spawnAsPromised('foo bar | bar "baz" | "baz" qux');
-      expectedOptions = [
-        {stdio: ['inherit', 'pipe', 'inherit']},
-        {stdio: ['pipe', 'pipe', 'inherit']},
-        {stdio: ['pipe', 'inherit', 'inherit']}
+      expectedStdio = [
+        ['inherit', 'pipe', 'inherit'],
+        ['pipe', 'pipe', 'inherit'],
+        ['pipe', 'inherit', 'inherit']
       ];
 
-      expect(childProcess.spawn.calls.argsFor(0)[2]).toEqual(expectedOptions[0]);
-      expect(childProcess.spawn.calls.argsFor(1)[2]).toEqual(expectedOptions[1]);
-      expect(childProcess.spawn.calls.argsFor(2)[2]).toEqual(expectedOptions[2]);
+      expect(childProcess.spawn.calls.argsFor(0)[2].stdio).toEqual(expectedStdio[0]);
+      expect(childProcess.spawn.calls.argsFor(1)[2].stdio).toEqual(expectedStdio[1]);
+      expect(childProcess.spawn.calls.argsFor(2)[2].stdio).toEqual(expectedStdio[2]);
     });
 
     it('should support specifying a custom input stream', () => {
       let inputStream = {pipe: jasmine.createSpy('inputStream.pipe')};
-      let expectedOptions;
+      let expectedStdio;
 
       utils.spawnAsPromised('foo bar', inputStream);
-      expectedOptions = {stdio: ['pipe', 'inherit', 'inherit']};
+      expectedStdio = ['pipe', 'inherit', 'inherit'];
 
-      expect(childProcess.spawn.calls.argsFor(0)[2]).toEqual(expectedOptions);
+      expect(childProcess.spawn.calls.argsFor(0)[2].stdio).toEqual(expectedStdio);
       expect(inputStream.pipe).toHaveBeenCalledWith(spawned[0].stdin);
       childProcess.spawn.calls.reset();
       inputStream.pipe.calls.reset();
 
       utils.spawnAsPromised('foo bar | bar "baz" | "baz" qux', inputStream);
-      expectedOptions = [
-        {stdio: ['pipe', 'pipe', 'inherit']},
-        {stdio: ['pipe', 'pipe', 'inherit']},
-        {stdio: ['pipe', 'inherit', 'inherit']}
+      expectedStdio = [
+        ['pipe', 'pipe', 'inherit'],
+        ['pipe', 'pipe', 'inherit'],
+        ['pipe', 'inherit', 'inherit']
       ];
 
-      expect(childProcess.spawn.calls.argsFor(0)[2]).toEqual(expectedOptions[0]);
-      expect(childProcess.spawn.calls.argsFor(1)[2]).toEqual(expectedOptions[1]);
-      expect(childProcess.spawn.calls.argsFor(2)[2]).toEqual(expectedOptions[2]);
+      expect(childProcess.spawn.calls.argsFor(0)[2].stdio).toEqual(expectedStdio[0]);
+      expect(childProcess.spawn.calls.argsFor(1)[2].stdio).toEqual(expectedStdio[1]);
+      expect(childProcess.spawn.calls.argsFor(2)[2].stdio).toEqual(expectedStdio[2]);
       expect(inputStream.pipe).toHaveBeenCalledTimes(1);
       expect(inputStream.pipe.calls.argsFor(0)[0]).toBe(spawned[1].stdin);
       expect(spawned[1].stdout.pipe.calls.argsFor(0)[0]).toBe(spawned[2].stdin);
@@ -415,26 +419,26 @@ describe('Utils', () => {
 
     it('should support specifying a custom output stream', () => {
       let outputStream = {};
-      let expectedOptions;
+      let expectedStdio;
 
       utils.spawnAsPromised('foo bar', null, outputStream);
-      expectedOptions = {stdio: ['inherit', 'pipe', 'inherit']};
+      expectedStdio = ['inherit', 'pipe', 'inherit'];
 
-      expect(childProcess.spawn.calls.argsFor(0)[2]).toEqual(expectedOptions);
+      expect(childProcess.spawn.calls.argsFor(0)[2].stdio).toEqual(expectedStdio);
       expect(spawned[0].stdout.pipe).toHaveBeenCalledWith(outputStream);
       childProcess.spawn.calls.reset();
       spawned[0].stdout.pipe.calls.reset();
 
       utils.spawnAsPromised('foo bar | bar "baz" | "baz" qux', null, outputStream);
-      expectedOptions = [
-        {stdio: ['inherit', 'pipe', 'inherit']},
-        {stdio: ['pipe', 'pipe', 'inherit']},
-        {stdio: ['pipe', 'pipe', 'inherit']}
+      expectedStdio = [
+        ['inherit', 'pipe', 'inherit'],
+        ['pipe', 'pipe', 'inherit'],
+        ['pipe', 'pipe', 'inherit']
       ];
 
-      expect(childProcess.spawn.calls.argsFor(0)[2]).toEqual(expectedOptions[0]);
-      expect(childProcess.spawn.calls.argsFor(1)[2]).toEqual(expectedOptions[1]);
-      expect(childProcess.spawn.calls.argsFor(2)[2]).toEqual(expectedOptions[2]);
+      expect(childProcess.spawn.calls.argsFor(0)[2].stdio).toEqual(expectedStdio[0]);
+      expect(childProcess.spawn.calls.argsFor(1)[2].stdio).toEqual(expectedStdio[1]);
+      expect(childProcess.spawn.calls.argsFor(2)[2].stdio).toEqual(expectedStdio[2]);
       expect(spawned[1].stdout.pipe.calls.argsFor(0)[0]).toBe(spawned[2].stdin);
       expect(spawned[2].stdout.pipe.calls.argsFor(0)[0]).toBe(spawned[3].stdin);
       expect(spawned[3].stdout.pipe.calls.argsFor(0)[0]).toBe(outputStream);
@@ -443,12 +447,12 @@ describe('Utils', () => {
     it('should support specifying custom input and output streams (at the same time)', () => {
       let inputStream = {pipe: jasmine.createSpy('inputStream.pipe')};
       let outputStream = {};
-      let expectedOptions;
+      let expectedStdio;
 
       utils.spawnAsPromised('foo bar', inputStream, outputStream);
-      expectedOptions = {stdio: ['pipe', 'pipe', 'inherit']};
+      expectedStdio = ['pipe', 'pipe', 'inherit'];
 
-      expect(childProcess.spawn.calls.argsFor(0)[2]).toEqual(expectedOptions);
+      expect(childProcess.spawn.calls.argsFor(0)[2].stdio).toEqual(expectedStdio);
       expect(inputStream.pipe).toHaveBeenCalledWith(spawned[0].stdin);
       expect(spawned[0].stdout.pipe).toHaveBeenCalledWith(outputStream);
       childProcess.spawn.calls.reset();
@@ -456,15 +460,15 @@ describe('Utils', () => {
       spawned[0].stdout.pipe.calls.reset();
 
       utils.spawnAsPromised('foo bar | bar "baz" | "baz" qux', inputStream, outputStream);
-      expectedOptions = [
-        {stdio: ['pipe', 'pipe', 'inherit']},
-        {stdio: ['pipe', 'pipe', 'inherit']},
-        {stdio: ['pipe', 'pipe', 'inherit']}
+      expectedStdio = [
+        ['pipe', 'pipe', 'inherit'],
+        ['pipe', 'pipe', 'inherit'],
+        ['pipe', 'pipe', 'inherit']
       ];
 
-      expect(childProcess.spawn.calls.argsFor(0)[2]).toEqual(expectedOptions[0]);
-      expect(childProcess.spawn.calls.argsFor(1)[2]).toEqual(expectedOptions[1]);
-      expect(childProcess.spawn.calls.argsFor(2)[2]).toEqual(expectedOptions[2]);
+      expect(childProcess.spawn.calls.argsFor(0)[2].stdio).toEqual(expectedStdio[0]);
+      expect(childProcess.spawn.calls.argsFor(1)[2].stdio).toEqual(expectedStdio[1]);
+      expect(childProcess.spawn.calls.argsFor(2)[2].stdio).toEqual(expectedStdio[2]);
       expect(inputStream.pipe).toHaveBeenCalledTimes(1);
       expect(inputStream.pipe.calls.argsFor(0)[0]).toBe(spawned[1].stdin);
       expect(spawned[1].stdout.pipe.calls.argsFor(0)[0]).toBe(spawned[2].stdin);

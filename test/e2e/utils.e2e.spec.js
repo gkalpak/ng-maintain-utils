@@ -19,11 +19,11 @@ describe('Utils', () => {
   describe('#spawnAsPromised()', () => {
     let nodeExecutable = process.execPath;
     let nodeCatProgram =
-        'var data = \'\';' +
-        'process.stdin.on(\'data\', d => data += d);' +
-        'process.stdin.on(\'end\', () => {' +
-          'console.log(data);' +
-          'process.exit(0);' +
+        'var data = \'\'; ' +
+        'process.stdin.on(\'data\', d => data += d); ' +
+        'process.stdin.on(\'end\', () => { ' +
+          'console.log(data); ' +
+          'process.exit(0); ' +
         '});';
     let nodeCatCommand = `"${nodeExecutable}" -e "${nodeCatProgram}"`;
     let nodeNoopCommand = `"${nodeExecutable}" -e "process.exit(process.argv[1])"`;
@@ -52,7 +52,7 @@ describe('Utils', () => {
       let response = runCommand(command);
 
       response.promise.
-        then(() => expect(response.stdout.trim()).toBe('Hello, world!')).
+        then(() => expect(response.stdout.trim()).toBe('"Hello, world!"')).
         then(done);
     });
 
@@ -76,7 +76,7 @@ describe('Utils', () => {
 
       Promise.
         all([
-          response1.promise.then(() => expect(response1.stdout.trim()).toBe('Hello, world!')),
+          response1.promise.then(() => expect(response1.stdout.trim()).toBe('"Hello, world!"')),
           response2.promise.then(() => expect(response2.stdout.trim()).toBe(''))
         ]).
         then(done);
