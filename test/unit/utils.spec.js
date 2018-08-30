@@ -94,7 +94,7 @@ describe('Utils', () => {
 
         fnAsPromised().
           then(out => expect(out).toBe('Test')).
-          then(done);
+          then(done, done.fail);
       });
     });
   });
@@ -483,7 +483,7 @@ describe('Utils', () => {
     it('should reject the returned promise if a spawned process errors (single command)', done => {
       utils.spawnAsPromised('foo').
         catch(err => expect(err).toBe('Test')).
-        then(done);
+        then(done, done.fail);
 
       spawned[0].emit('error', 'Test');
     });
@@ -504,7 +504,7 @@ describe('Utils', () => {
 
       Promise.all(promises).
         then(values => expect(values).toEqual(['Test0', 'Test1', 'Test2'])).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should reject the returned promise if a spawned process exits with error', done => {
@@ -525,13 +525,14 @@ describe('Utils', () => {
 
       Promise.all(promises).
         then(values => expect(values).toEqual([1, 33, 7])).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should resolve the returned promise when all spawned processes complete (single command)',
       done => {
         let resolved = jasmine.createSpy('resolved');
 
+        // eslint-disable-next-line jasmine/no-promise-without-done-fail
         utils.spawnAsPromised('foo').then(resolved);
         spawned[0].emit('exit', 0);
 
@@ -550,6 +551,7 @@ describe('Utils', () => {
       done => {
         let resolved = jasmine.createSpy('resolved');
 
+        // eslint-disable-next-line jasmine/no-promise-without-done-fail
         utils.spawnAsPromised('foo | bar | baz').then(resolved);
         spawned[0].emit('exit', 0);
 
@@ -601,6 +603,8 @@ describe('Utils', () => {
 
     it('should resolve the returned promise after `period` milliseconds', done => {
       let resolved = jasmine.createSpy('resolved');
+
+      // eslint-disable-next-line jasmine/no-promise-without-done-fail
       utils.waitAsPromised(500).then(resolved);
 
       Promise.resolve().
@@ -609,7 +613,7 @@ describe('Utils', () => {
         then(() => expect(resolved).not.toHaveBeenCalled()).
         then(() => jasmine.clock().tick(1)).
         then(() => expect(resolved).toHaveBeenCalled()).
-        then(done);
+        then(done, done.fail);
     });
   });
 

@@ -38,11 +38,11 @@ describe('CleanUper', () => {
 
           // Returning early may leave a scheduled `console.log()` in the microtask queue,
           // which may throw off the next test's expectations.
-          Promise.all([promise1, promise2]).then(done);
+          Promise.all([promise1, promise2]).then(done, done.fail);
         });
 
         it('should return a resolved promise if no tasks are scheduled', done => {
-          doCleanUp().then(done);
+          doCleanUp().then(done, done.fail);
         });
 
         it('should resolve the returned promise if all tasks complete successfully', done => {
@@ -53,7 +53,7 @@ describe('CleanUper', () => {
           cleanUper.schedule(taskId2);
           cleanUper.schedule(taskId3);
 
-          doCleanUp().then(done);
+          doCleanUp().then(done, done.fail);
         });
 
         it('should clean the `_scheduledTasks` queue', done => {
@@ -69,10 +69,9 @@ describe('CleanUper', () => {
 
           expect(cleanUper.hasTasks()).toBe(true);
 
-          doCleanUp().then(() => {
-            expect(cleanUper.hasTasks()).toBe(false);
-            done();
-          });
+          doCleanUp().
+            then(() => expect(cleanUper.hasTasks()).toBe(false)).
+            then(done, done.fail);
         });
 
         it('should log each task\'s description to the console', done => {
@@ -84,14 +83,14 @@ describe('CleanUper', () => {
           cleanUper.schedule(taskId2);
           cleanUper.schedule(taskId3);
 
-          doCleanUp().then(() => {
-            expect(console.log).toHaveBeenCalledTimes(3);
-            expect(console.log.calls.argsFor(0)[0]).toContain('baz');
-            expect(console.log.calls.argsFor(1)[0]).toContain('bar');
-            expect(console.log.calls.argsFor(2)[0]).toContain('foo');
-
-            done();
-          });
+          doCleanUp().
+            then(() => {
+              expect(console.log).toHaveBeenCalledTimes(3);
+              expect(console.log.calls.argsFor(0)[0]).toContain('baz');
+              expect(console.log.calls.argsFor(1)[0]).toContain('bar');
+              expect(console.log.calls.argsFor(2)[0]).toContain('foo');
+            }).
+            then(done, done.fail);
         });
       });
     });
@@ -115,10 +114,9 @@ describe('CleanUper', () => {
         cleanUper.schedule(taskId2);
         cleanUper.schedule(taskId1);
 
-        doCleanUp().then(() => {
-          expect(value).toBe('foo|quxbaz|foo');
-          done();
-        });
+        doCleanUp().
+          then(() => expect(value).toBe('foo|quxbaz|foo')).
+          then(done, done.fail);
       });
 
       it('should support returning promises from task callbacks', done => {
@@ -131,8 +129,9 @@ describe('CleanUper', () => {
           cleanUper.schedule(taskId);
         });
 
-        doCleanUp().then(done);
+        doCleanUp().then(done, done.fail);
 
+        // eslint-disable-next-line jasmine/no-promise-without-done-fail
         Promise.resolve().
           then(letMicrotaskQueueDrain).
           then(() => {
@@ -215,13 +214,14 @@ describe('CleanUper', () => {
         cleanUper.schedule(taskId2);
         cleanUper.schedule(taskId1);
 
-        doCleanUp().then(() => {
-          expect(cleanUper.hasTasks()).toBe(false);
-          expect(cb1).not.toHaveBeenCalled();
-          expect(cb2).not.toHaveBeenCalled();
-          expect(cb3).not.toHaveBeenCalled();
-          done();
-        });
+        doCleanUp().
+          then(() => {
+            expect(cleanUper.hasTasks()).toBe(false);
+            expect(cb1).not.toHaveBeenCalled();
+            expect(cb2).not.toHaveBeenCalled();
+            expect(cb3).not.toHaveBeenCalled();
+          }).
+          then(done, done.fail);
       });
     });
   });
@@ -376,15 +376,14 @@ describe('CleanUper', () => {
     });
 
     it('should resolve the returned promise if `fn` completes successfully', done => {
-      cleanUper.withTask(taskId, () => 'foo').then(value => {
-        expect(value).toBe('foo');
-
-        done();
-      });
+      cleanUper.
+        withTask(taskId, () => 'foo').
+        then(value => expect(value).toBe('foo')).
+        then(done, done.fail);
     });
 
     it('should reject the returned promise if `fn` throws an error', done => {
-      cleanUper.withTask(taskId, () => { throw 'Test'; }).catch(err => {
+      cleanUper.withTask(taskId, () => { throw 'Test'; }).then(done.fail, err => {
         expect(err).toBe('Test');
 
         done();
@@ -392,7 +391,7 @@ describe('CleanUper', () => {
     });
 
     it('should reject the returned promise if `fn` returns a rejection', done => {
-      cleanUper.withTask(taskId, () => Promise.reject('Test')).catch(err => {
+      cleanUper.withTask(taskId, () => Promise.reject('Test')).then(done.fail, err => {
         expect(err).toBe('Test');
 
         done();
@@ -402,11 +401,10 @@ describe('CleanUper', () => {
     it('should run the specified `fn` (asynchronously)', done => {
       let fn = jasmine.createSpy('fn');
 
-      cleanUper.withTask(taskId, fn).then(() => {
-        expect(fn).toHaveBeenCalled();
-
-        done();
-      });
+      cleanUper.
+        withTask(taskId, fn).
+        then(() => expect(fn).toHaveBeenCalled()).
+        then(done, done.fail);
 
       expect(fn).not.toHaveBeenCalled();
     });
@@ -422,15 +420,14 @@ describe('CleanUper', () => {
       expect(cleanUper.schedule).not.toHaveBeenCalled();
       expect(cleanUper.hasTasks()).toBe(false);
 
-      cleanUper.withTask(taskId, fn).then(done);
+      cleanUper.withTask(taskId, fn).then(done, done.fail);
     });
 
     it('should unschedule the task if `fn` completes successfully', done => {
-      cleanUper.withTask(taskId, () => {}).then(() => {
-        expect(cleanUper.hasTasks()).toBe(false);
-
-        done();
-      });
+      cleanUper.
+        withTask(taskId, () => {}).
+        then(() => expect(cleanUper.hasTasks()).toBe(false)).
+        then(done, done.fail);
 
       expect(cleanUper.hasTasks()).toBe(true);
     });
@@ -457,11 +454,10 @@ describe('CleanUper', () => {
         resolve();
       }));
 
-      cleanUper.withTask(taskId, fn).then(() => {
-        expect(cleanUper.hasTasks()).toBe(false);
-
-        done();
-      });
+      cleanUper.
+        withTask(taskId, fn).
+        then(() => expect(cleanUper.hasTasks()).toBe(false)).
+        then(done, done.fail);
     });
   });
 });

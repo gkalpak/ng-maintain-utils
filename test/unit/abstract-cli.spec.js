@@ -197,9 +197,11 @@ describe('AbstractCli', () => {
 
       cli._displayInstructions(phases, {});
 
+      /* eslint-disable no-control-regex */
       expect(console.log.calls.argsFor(1)[0]).not.toContain('`');
       expect(console.log.calls.argsFor(1)[0]).toMatch(/\u001b\[\S+bar\u001b\[\S+/);
       expect(console.log.calls.argsFor(1)[0]).toMatch(/\u001b\[\S+qux\u001b\[\S+/);
+      /* eslint-enable no-control-regex */
     });
   });
 
@@ -274,7 +276,7 @@ describe('AbstractCli', () => {
       cli.
         _getAndValidateInput(rawArgs, []).
         then(() => expect(cli._utils.parseArgs).toHaveBeenCalledWith(rawArgs)).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should read the `version` argument', done => {
@@ -291,7 +293,7 @@ describe('AbstractCli', () => {
           expect(inputs[1].version).toBe(false);
           expect(inputs[2].version).toBe(true);
         }).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should read the `usage` argument', done => {
@@ -308,7 +310,7 @@ describe('AbstractCli', () => {
           expect(inputs[1].usage).toBe(false);
           expect(inputs[2].usage).toBe(true);
         }).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should read the `instructions` argument', done => {
@@ -325,7 +327,7 @@ describe('AbstractCli', () => {
           expect(inputs[1].instructions).toBe(false);
           expect(inputs[2].instructions).toBe(true);
         }).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should apply `argSpecs`', done => {
@@ -347,7 +349,7 @@ describe('AbstractCli', () => {
             qux: 'default'
           }));
         }).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should not apply `argSpecs` if `--version` is detected', done => {
@@ -372,7 +374,7 @@ describe('AbstractCli', () => {
             qux: 'default'
           }));
         }).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should not apply `argSpecs` if `--usage` is detected', done => {
@@ -397,7 +399,7 @@ describe('AbstractCli', () => {
             qux: 'default'
           }));
         }).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should apply `argSpecs` if `--instructions` is detected', done => {
@@ -419,7 +421,7 @@ describe('AbstractCli', () => {
             qux: 'default'
           }));
         }).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should reject the returned promise if any `ArgSpec` is not satisfied', done => {
@@ -537,10 +539,13 @@ describe('AbstractCli', () => {
       spyOn(cli, '_getAndValidateInput').and.returnValue(input);
     });
 
-    it('should return a promise', () => {
+    it('should return a promise', done => {
       let promise = cli.run([], doWorkSpy);
 
       expect(promise).toEqual(jasmine.any(Promise));
+
+      // Avoid completing the test (and thus releasing the spies) prematurely.
+      promise.then(done, done);
     });
 
     it('should read and validate the input', done => {
@@ -549,7 +554,7 @@ describe('AbstractCli', () => {
       cli.
         run(args, doWorkSpy).
         then(() => expect(cli._getAndValidateInput).toHaveBeenCalledWith(args, config.argSpecs)).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should display the version info (and "return") if `--version` is detected', done => {
@@ -563,7 +568,7 @@ describe('AbstractCli', () => {
           expect(cli._displayVersionInfo).toHaveBeenCalledWith();
           expect(doWorkSpy).not.toHaveBeenCalled();
         }).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should display the usage instructions (and "return") if `--usage` is detected', done => {
@@ -577,7 +582,7 @@ describe('AbstractCli', () => {
           expect(cli._displayUsage).toHaveBeenCalledWith('mockUsage');
           expect(doWorkSpy).not.toHaveBeenCalled();
         }).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should display the instructions (and "return") if `--instructions` is detected', done => {
@@ -595,7 +600,7 @@ describe('AbstractCli', () => {
           expect(cli._displayInstructions).toHaveBeenCalledWith([], input);
           expect(doWorkSpy).not.toHaveBeenCalled();
         }).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should display the header', done => {
@@ -604,14 +609,14 @@ describe('AbstractCli', () => {
       cli.
         run([], doWorkSpy).
         then(() => expect(cli._displayHeader).toHaveBeenCalledWith('mockHeaderTmpl', input)).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should do some work (based on the input)', done => {
       cli.
         run([], doWorkSpy).
         then(() => expect(doWorkSpy).toHaveBeenCalledWith(input)).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should resolve the returned promise with the value returned by `doWork()`', done => {
@@ -620,7 +625,7 @@ describe('AbstractCli', () => {
       cli.
         run([], doWorkSpy).
         then(value => expect(value).toBe('Test')).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should reject the returned promise with undefined', done => {
@@ -645,7 +650,7 @@ describe('AbstractCli', () => {
           run([], doWorkSpy).
           then(() => expect(cli._theHappyEnd).toHaveBeenCalledWith('Test')).
           then(() => expect(cli._theUnhappyEnd).not.toHaveBeenCalled()).
-          then(done);
+          then(done, done.fail);
       });
     });
 
@@ -680,7 +685,7 @@ describe('AbstractCli', () => {
 
       let promises = [
         // Invalid input
-        cli.run([], doWorkSpy).then(() => Promise.reject(), () => Promise.resolve()),
+        reversePromise(cli.run([], doWorkSpy)),
 
         // --version
         cli.run([], doWorkSpy),
@@ -695,13 +700,19 @@ describe('AbstractCli', () => {
         cli.run([], doWorkSpy),
 
         // `doWork()` rejects
-        cli.run([], doWorkSpy).then(() => Promise.reject(), () => Promise.resolve())
+        reversePromise(cli.run([], doWorkSpy))
       ];
 
       Promise.
         all(promises).
         then(() => expect(cli._insertEmptyLine).toHaveBeenCalledTimes(6)).
-        then(done);
+        then(done, done.fail);
     });
   });
+
+  // Helpers
+  function reversePromise(promise) {
+    // "Reverse" the promise; i.e `resolve` --> `reject`, `reject` --> `resolve`.
+    return promise.then(v => Promise.reject(v), e => Promise.resolve(e));
+  }
 });

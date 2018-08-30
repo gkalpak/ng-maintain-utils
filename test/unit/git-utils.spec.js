@@ -115,7 +115,7 @@ describe('GitUtils', () => {
       createGitUtils().
         countCommitsSince('foo').
         then(count => expect(count).toBe(42)).
-        then(done);
+        then(done, done.fail);
 
       deferred.resolve(' 42\n ');
     });
@@ -194,7 +194,7 @@ describe('GitUtils', () => {
 
       createGitUtils().
         diffWithHighlight('foo').
-        then(done);
+        then(done, done.fail);
     });
 
     it('should reject when any command errors', done => {
@@ -248,7 +248,7 @@ describe('GitUtils', () => {
 
       createGitUtils().
         diffWithHighlight2('foo').
-        then(done);
+        then(done, done.fail);
     });
 
     it('should reject when any command errors', done => {
@@ -276,7 +276,7 @@ describe('GitUtils', () => {
       createGitUtils().
         getCommitMessage('foo').
         then(message => expect(message).toBe('bar')).
-        then(done);
+        then(done, done.fail);
 
       deferred.resolve({toString: () => 'bar'});
     });
@@ -295,7 +295,7 @@ describe('GitUtils', () => {
       createGitUtils().
         getLastCommitMessage().
         then(message => expect(message).toBe('bar')).
-        then(done);
+        then(done, done.fail);
 
       deferred.resolve({toString: () => 'bar'});
     });
@@ -334,7 +334,7 @@ describe('GitUtils', () => {
     it('should ignore rejections', done => {
       createGitUtils().
         log().
-        then(done);
+        then(done, done.fail);
 
       deferred.reject();
     });
@@ -417,7 +417,7 @@ describe('GitUtils', () => {
       gitUtils.
         mergePullRequest('foo').
         then(value => expect(value).toBe('Test')).
-        then(done);
+        then(done, done.fail);
 
       request.emit('end');
     });
@@ -503,7 +503,7 @@ describe('GitUtils', () => {
         setLastCommitMessage('foo').
         then(() => expect(gitUtils.writeFileAsPromised).
           toHaveBeenCalledWith(jasmine.any(String), 'foo')).
-        then(done);
+        then(done, done.fail);
 
       setTimeout(() => deferred.resolve());
     });
@@ -514,7 +514,7 @@ describe('GitUtils', () => {
         then(() => gitUtils.writeFileAsPromised.calls.argsFor(0)[0]).
         then(tempFile => `git commit --amend --file=${tempFile}`).
         then(cmd => expect(utils.spawnAsPromised).toHaveBeenCalledWith(cmd)).
-        then(done);
+        then(done, done.fail);
 
       setTimeout(() => deferred.resolve());
     });
@@ -524,7 +524,7 @@ describe('GitUtils', () => {
         setLastCommitMessage('foo').
         then(() => gitUtils.writeFileAsPromised.calls.argsFor(0)[0]).
         then(tempFile => expect(gitUtils.unlinkAsPromised).toHaveBeenCalledWith(tempFile)).
-        then(done);
+        then(done, done.fail);
 
       setTimeout(() => deferred.resolve());
     });
@@ -540,7 +540,7 @@ describe('GitUtils', () => {
     });
 
     it('should return a promise', done => {
-      let promise = gitUtils.setLastCommitMessage('foo').then(done);
+      let promise = gitUtils.setLastCommitMessage('foo').then(done, done.fail);
       setTimeout(() => deferred.resolve());
 
       expect(promise).toEqual(jasmine.any(Promise));
@@ -647,7 +647,7 @@ describe('GitUtils', () => {
       gitUtils.
         updateLastCommitMessage(getNewMessage).
         then(() => expect(gitUtils.getLastCommitMessage).toHaveBeenCalled()).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should pass the old commit message to `getNewMessage()`', done => {
@@ -656,7 +656,7 @@ describe('GitUtils', () => {
       gitUtils.
         updateLastCommitMessage(getNewMessage).
         then(() => expect(getNewMessage).toHaveBeenCalledWith('foo')).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should update the commit message to the value returned by `getNewMessage()`', done => {
@@ -665,7 +665,7 @@ describe('GitUtils', () => {
       gitUtils.
         updateLastCommitMessage(getNewMessage).
         then(() => expect(gitUtils.setLastCommitMessage).toHaveBeenCalledWith('bar')).
-        then(done);
+        then(done, done.fail);
     });
   });
 

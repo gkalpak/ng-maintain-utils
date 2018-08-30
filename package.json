@@ -27,12 +27,12 @@
     "url": "git+https://github.com/gkalpak/ng-maintain-utils.git"
   },
   "dependencies": {
-    "chalk": "^2.1.0",
+    "chalk": "^2.4.1",
     "minimist": "^1.2.0"
   },
   "devDependencies": {
-    "eslint": "^4.4.1",
-    "eslint-plugin-jasmine": "^2.8.3",
-    "jasmine": "^2.7.0"
+    "eslint": "^5.4.0",
+    "eslint-plugin-jasmine": "^2.10.1",
+    "jasmine": "^3.2.0"
   }
 }

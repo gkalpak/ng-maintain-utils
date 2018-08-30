@@ -32,7 +32,7 @@ describe('Utils', () => {
       let command = `${nodeNoopCommand} 0`;
       let response = runCommand(command);
 
-      response.promise.then(done);
+      response.promise.then(done, done.fail);
     });
 
     it('should reject if the spawned process exits with an error', done => {
@@ -53,7 +53,7 @@ describe('Utils', () => {
 
       response.promise.
         then(() => expect(response.stdout.trim()).toBe('Hello, world!')).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should support piping to stdin', done => {
@@ -62,7 +62,7 @@ describe('Utils', () => {
 
       response.promise.
         then(() => expect(response.stdout.trim()).toBe('Hello, world!')).
-        then(done);
+        then(done, done.fail);
 
       response.inputStream.end('Hello, world!');
     });
@@ -76,10 +76,12 @@ describe('Utils', () => {
 
       Promise.
         all([
+          // eslint-disable-next-line jasmine/no-promise-without-done-fail
           response1.promise.then(() => expect(response1.stdout.trim()).toBe('Hello, world!')),
+          // eslint-disable-next-line jasmine/no-promise-without-done-fail
           response2.promise.then(() => expect(response2.stdout.trim()).toBe(''))
         ]).
-        then(done);
+        then(done, done.fail);
     });
 
     // Helpers

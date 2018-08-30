@@ -95,7 +95,7 @@ describe('AbstractCli', () => {
 
           expect(doWork).not.toHaveBeenCalled();
         }).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should take precedence over `--usage`', done => {
@@ -111,7 +111,7 @@ describe('AbstractCli', () => {
           expect(args[0][0]).toContain(versionMessage);
           expect(args[0][0]).not.toContain(usageMessage);
         }).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should take precedence over `--instructions`', done => {
@@ -127,7 +127,7 @@ describe('AbstractCli', () => {
           expect(args[0][0]).toContain(versionMessage);
           expect(args[0][0]).not.toContain(instructionsHeader);
         }).
-        then(done);
+        then(done, done.fail);
     });
   });
 
@@ -148,7 +148,7 @@ describe('AbstractCli', () => {
 
           expect(doWork).not.toHaveBeenCalled();
         }).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should not display the "experimental tool" warning if empty', done => {
@@ -170,7 +170,7 @@ describe('AbstractCli', () => {
 
           expect(doWork).not.toHaveBeenCalled();
         }).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should take precedence over `--instructions`', done => {
@@ -192,7 +192,7 @@ describe('AbstractCli', () => {
           expect(args[2][0]).toContain(usageMessage);
           expect(args[2][0]).not.toContain(instructionsHeader);
         }).
-        then(done);
+        then(done, done.fail);
     });
   });
 
@@ -224,7 +224,7 @@ describe('AbstractCli', () => {
 
             expect(doWork).not.toHaveBeenCalled();
           }).
-          then(done);
+          then(done, done.fail);
       }
     );
 
@@ -243,7 +243,7 @@ describe('AbstractCli', () => {
           expect(args[1][0]).not.toContain(warningMessage);
           expect(args[1][0]).toContain('Instructions for foooo, rab, zbabz and null');
         }).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should reject if any argument is invalid', done => {
@@ -282,7 +282,7 @@ describe('AbstractCli', () => {
           baz: 'zzaabb',
           qux: null
         }))).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should decorate the actual work with user-engaging headers/footers', done => {
@@ -303,7 +303,7 @@ describe('AbstractCli', () => {
           expect(args[++idx][0]).toContain('Hack...hack...hack...');
           expect(args[++idx][0]).toContain('OPERATION COMPLETED SUCCESSFULLY');
         }).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should reject (undefined) when something goes wrong (and not report success)', done => {
@@ -416,6 +416,7 @@ describe('AbstractCli', () => {
           let phases = cli.getPhases();
           let resolve = Promise.resolve.bind(Promise);
 
+          // eslint-disable-next-line jasmine/no-promise-without-done-fail
           return Promise.resolve().
             then(() => cli._uiUtils.phase(phases[0], () => resolve(phaseWorkFns[0](inp.foo)))).
             then(() => cli._uiUtils.phase(phases[1], () => resolve(phaseWorkFns[1](inp.bar)))).
@@ -454,7 +455,7 @@ describe('AbstractCli', () => {
             expect(cubicle).toEqual(['foo', 'bar', 'baz', 'qux']);
             expect(cli._cleanUper.hasTasks()).toBe(false);
           }).
-          then(done);
+          then(done, done.fail);
       });
 
       [false, true].forEach(confirmCleanUp => {
@@ -467,12 +468,14 @@ describe('AbstractCli', () => {
             let phases = cli.getPhases();
             let resolve = Promise.resolve.bind(Promise);
 
+            /* eslint-disable jasmine/no-promise-without-done-fail */
             return Promise.resolve().
               then(() => cli._uiUtils.phase(phases[0], () => resolve(phaseWorkFns[0](inp.foo)))).
               then(() => cli._uiUtils.phase(phases[1], () => resolve(phaseWorkFns[1](inp.bar)).
                 then(() => Promise.reject('You should not have done that')))).
               then(() => cli._uiUtils.phase(phases[2], () => resolve(phaseWorkFns[2](inp.baz)))).
               then(() => cli._uiUtils.phase(phases[3], () => resolve(phaseWorkFns[3](inp.qux))));
+            /* eslint-enable jasmine/no-promise-without-done-fail */
           };
 
           let versionMessage = ` ${config.versionInfo.name}  v${config.versionInfo.version} `;

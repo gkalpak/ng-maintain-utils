@@ -55,7 +55,7 @@ describe('UiUtils', () => {
       uiUtils.
         askQuestion().
         then(value => expect(value).toBe('bar')).
-        then(done);
+        then(done, done.fail);
 
       mockRl.answer('bar');
     });
@@ -109,7 +109,7 @@ describe('UiUtils', () => {
       promises.push(uiUtils.askYesOrNoQuestion('', true));
       answer('yes');
 
-      Promise.all(promises).then(done);
+      Promise.all(promises).then(done, done.fail);
     });
 
     it('should reject the returned promise if the answer is "no"', done => {
@@ -124,7 +124,7 @@ describe('UiUtils', () => {
       promises.push(reversePromise(uiUtils.askYesOrNoQuestion('', true)));
       answer('no');
 
-      Promise.all(promises).then(done);
+      Promise.all(promises).then(done, done.fail);
     });
 
     it('should ignore case and also accept single-letter answers (default: no)', done => {
@@ -145,7 +145,7 @@ describe('UiUtils', () => {
         return reversePromise(promise);
       });
 
-      Promise.all(yesPromises.concat(noPromises)).then(done);
+      Promise.all(yesPromises.concat(noPromises)).then(done, done.fail);
     });
 
     it('should ignore case and also accept single-letter answers (default: yes)', done => {
@@ -166,7 +166,7 @@ describe('UiUtils', () => {
         return reversePromise(promise);
       });
 
-      Promise.all(yesPromises.concat(noPromises)).then(done);
+      Promise.all(yesPromises.concat(noPromises)).then(done, done.fail);
     });
   });
 
@@ -215,7 +215,7 @@ describe('UiUtils', () => {
         offerToCleanUp().
         then(() => expect(uiUtils.phase).toHaveBeenCalled()).
         then(() => expect(cleanUper.cleanUp).toHaveBeenCalledWith()).
-        then(done);
+        then(done, done.fail);
 
       deferred.resolve();
     });
@@ -225,7 +225,7 @@ describe('UiUtils', () => {
         offerToCleanUp().
         then(() => expect(uiUtils.phase).not.toHaveBeenCalled()).
         then(() => expect(cleanUper.cleanUp).toHaveBeenCalledWith(true)).
-        then(done);
+        then(done, done.fail);
 
       deferred.reject();
     });
@@ -261,7 +261,7 @@ describe('UiUtils', () => {
       uiUtils.
         phase({}, () => Promise.resolve('bar')).
         then(value => expect(value).toBe('bar')).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should report to the console when the work is done', done => {
@@ -273,7 +273,7 @@ describe('UiUtils', () => {
       uiUtils.
         phase({}, doWork).
         then(() => expect(console.log.calls.mostRecent().args[0]).toContain('done')).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should not report to the console if `doWork()` errors', done => {
@@ -300,7 +300,7 @@ describe('UiUtils', () => {
         phase(phase, doWork).
         then(() => expect(uiUtils.reportAndRejectFnGen.calls.argsFor(0)[0]).toBe('foo')).
         then(() => expect(errorCb).toHaveBeenCalledWith('bar')).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should fall back to a default error for the error callback', done => {
@@ -314,7 +314,7 @@ describe('UiUtils', () => {
         phase(phase, doWork).
         then(() => expect(uiUtils.reportAndRejectFnGen.calls.argsFor(0)[0]).toBe(errorCode)).
         then(() => expect(errorCb).toHaveBeenCalledWith('bar')).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should support skipping clean-up', () => {
@@ -424,7 +424,7 @@ describe('UiUtils', () => {
             // Clean-up
             reversePromise(fn())
           ]).
-          then(done);
+          then(done, done.fail);
       });
 
       it('should log the error to the console when cleaning up errors', done => {
@@ -433,7 +433,7 @@ describe('UiUtils', () => {
 
         reversePromise(uiUtils.reportAndRejectFnGen()()).
           then(() => expect(console.error.calls.mostRecent().args[1]).toBe('Test')).
-          then(done);
+          then(done, done.fail);
       });
 
       it('should log a generic error to the console when cleaning up rejects with no reason',
@@ -445,7 +445,7 @@ describe('UiUtils', () => {
 
           reversePromise(uiUtils.reportAndRejectFnGen()()).
             then(() => expect(console.error.calls.mostRecent().args[1]).toBe('Wait, whaaat?')).
-            then(done);
+            then(done, done.fail);
         }
       );
     });

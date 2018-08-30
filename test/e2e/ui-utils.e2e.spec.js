@@ -36,7 +36,7 @@ describe('UiUtils', () => {
       uiUtils.
         askQuestion('Why?').
         then(() => expect(process.stdout.write).toHaveBeenCalledWith('Why?')).
-        then(done);
+        then(done, done.fail);
 
       process.stdin.emit('data', '\n');
     });
@@ -45,7 +45,7 @@ describe('UiUtils', () => {
       uiUtils.
         askQuestion('Why?').
         then(answer => expect(answer).toBe('Because')).
-        then(done);
+        then(done, done.fail);
 
       process.stdin.emit('data', 'Because\n');
     });
@@ -60,7 +60,7 @@ describe('UiUtils', () => {
       uiUtils.
         askYesOrNoQuestion('Are you sure?').
         then(() => expect(process.stdout.write).toHaveBeenCalledWith('\nAre you sure? [y/N]: ')).
-        then(done);
+        then(done, done.fail);
 
       process.stdin.emit('data', 'y\n');
     });
@@ -69,7 +69,7 @@ describe('UiUtils', () => {
       uiUtils.
         askYesOrNoQuestion('Any doubts?', true).
         then(() => expect(process.stdout.write).toHaveBeenCalledWith('\nAny doubts? [Y/n]: ')).
-        then(done);
+        then(done, done.fail);
 
       process.stdin.emit('data', '\n');
     });
@@ -114,7 +114,7 @@ describe('UiUtils', () => {
 
           expect(console.error).not.toHaveBeenCalled();
         }).
-        then(done);
+        then(done, done.fail);
     });
 
     it('should handle errors', done => {
