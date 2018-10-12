@@ -189,7 +189,7 @@ describe('AbstractCli', () => {
     });
 
     it('should format `...` specially', () => {
-      chalk.enabled = true;
+      forceEnableChalk();
 
       let phases = [
         new Phase('', '', ['foo `bar` baz `qux`'])
@@ -241,7 +241,7 @@ describe('AbstractCli', () => {
     it('should format the first line differently', () => {
       let message = 'foo\nbar\nbaz\nqux';
 
-      chalk.enabled = true;
+      forceEnableChalk();
       cli._displayUsage(message);
 
       let logged = console.log.calls.mostRecent().args[0];
@@ -545,7 +545,7 @@ describe('AbstractCli', () => {
       expect(promise).toEqual(jasmine.any(Promise));
 
       // Avoid completing the test (and thus releasing the spies) prematurely.
-      promise.then(done, done);
+      promise.then(done, done.fail);
     });
 
     it('should read and validate the input', done => {
@@ -711,6 +711,12 @@ describe('AbstractCli', () => {
   });
 
   // Helpers
+  function forceEnableChalk() {
+    // In some environments (e.g. Windows on Travis), `chalk.level` is `0`.
+    chalk.enabled = true;
+    chalk.level = chalk.level || 1;
+  }
+
   function reversePromise(promise) {
     // "Reverse" the promise; i.e `resolve` --> `reject`, `reject` --> `resolve`.
     return promise.then(v => Promise.reject(v), e => Promise.resolve(e));
