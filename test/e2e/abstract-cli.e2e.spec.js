@@ -11,7 +11,7 @@ let Phase = require('../../lib/phase');
 
 // Tests
 describe('AbstractCli', () => {
-  let chalkEnabled = chalk.enabled;
+  let chalkLevel = chalk.level;
   let config;
   let cli;
   let doWork;
@@ -69,14 +69,14 @@ describe('AbstractCli', () => {
     cli = new MyCli(config);
     doWork = jasmine.createSpy('doWork');
 
-    chalk.enabled = false;
+    chalk.level = 0;
 
     spyOn(console, 'error');
     spyOn(console, 'log');
   });
 
   afterEach(() => {
-    chalk.enabled = chalkEnabled;
+    chalk.level = chalkLevel;
   });
 
   describe('--version', () => {

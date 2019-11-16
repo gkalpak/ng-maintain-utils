@@ -15,7 +15,7 @@ let Utils = require('../../lib/utils');
 describe('AbstractCli', () => {
   class Cli extends AbstractCli {}
 
-  let chalkEnabled;
+  let chalkLevel;
   let config;
   let cli;
 
@@ -23,8 +23,8 @@ describe('AbstractCli', () => {
     spyOn(console, 'log');
     spyOn(Utils.prototype, 'resetOutputStyleOnExit');
 
-    chalkEnabled = chalk.enabled;
-    chalk.enabled = false;
+    chalkLevel = chalk.level;
+    chalk.level = 0;
 
     config = {
       argSpecs: [],
@@ -45,7 +45,7 @@ describe('AbstractCli', () => {
   });
 
   afterEach(() => {
-    chalk.enabled = chalkEnabled;
+    chalk.level = chalkLevel;
   });
 
   describe('#constructor()', () => {
@@ -713,7 +713,6 @@ describe('AbstractCli', () => {
   // Helpers
   function forceEnableChalk() {
     // In some environments (e.g. Windows on Travis), `chalk.level` is `0`.
-    chalk.enabled = true;
     chalk.level = chalk.level || 1;
   }
 

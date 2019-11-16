@@ -10,7 +10,7 @@ let UiUtils = require('../../lib/ui-utils');
 
 // Tests
 describe('UiUtils', () => {
-  let chalkEnabled;
+  let chalkLevel;
   let uiUtils;
 
   beforeEach(() => {
@@ -19,12 +19,12 @@ describe('UiUtils', () => {
 
     uiUtils = new UiUtils(cleanUper, errorMessages);
 
-    chalkEnabled = chalk.enabled;
-    chalk.enabled = false;
+    chalkLevel = chalk.level;
+    chalk.level = 0;
   });
 
   afterEach(() => {
-    chalk.enabled = chalkEnabled;
+    chalk.level = chalkLevel;
   });
 
   describe('#askQuestion()', () => {
