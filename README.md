@@ -79,6 +79,9 @@ repositories.
     return a promise). If all goes well, unschedule `taskId`. If an error occurs, leave `taskId`
     in the clean-up task queue.
 
+  Requires:
+    - _logger_: `Logger`
+
 - **`Config`:** Creates a `Config` object based on the specified `messages` and `argSpecs` (falling
   back to some default values if necessary). It exposes the following properties:
 
@@ -174,6 +177,16 @@ repositories.
     }
     ```
 
+- **`Logger`:** A simple helper providing minimal logging utilities. This is mostly used in order to
+  make it easier to test logging behavior without affecting `console` methods. Provides the
+  following methods:
+
+  - `debug()`: Delegate to `console.debug()`.
+  - `error()`: Delegate to `console.error()`.
+  - `info()`: Delegate to `console.info()`.
+  - `log()`: Delegate to `console.log()`.
+  - `warn()`: Delegate to `console.warn()`.
+
 - **`Phase`:** A simple wrapper for "phase" entities (with validation). A "phase" is a description
   of a unit of work, including an ID, a short description, a list of the tasks involved and an error
   message (or code) specific to this "phase".
@@ -198,6 +211,7 @@ repositories.
     not configured otherwise) and return a rejection.
 
   Requires:
+    - _logger_: `Logger`
     - _cleanUper_: `CleanUper`
     - _errorMessages_: `{[errorCode: string]: string}`
 
