@@ -12,6 +12,7 @@ describe('index', () => {
       CleanUper: jasmine.any(Function),
       Config: jasmine.any(Function),
       GitUtils: jasmine.any(Function),
+      Logger: jasmine.any(Function),
       Phase: jasmine.any(Function),
       UiUtils: jasmine.any(Function),
       Utils: jasmine.any(Function)

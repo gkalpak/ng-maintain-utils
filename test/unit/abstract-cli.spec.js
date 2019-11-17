@@ -7,6 +7,7 @@ let chalk = require('chalk');
 let AbstractCli = require('../../lib/abstract-cli');
 let ArgSpec = require('../../lib/arg-spec');
 let CleanUper = require('../../lib/clean-uper');
+let Logger = require('../../lib/logger');
 let Phase = require('../../lib/phase');
 let UiUtils = require('../../lib/ui-utils');
 let Utils = require('../../lib/utils');
@@ -21,7 +22,7 @@ describe('AbstractCli', () => {
   let cli;
 
   beforeEach(() => {
-    spyOn(console, 'log');
+    ['debug', 'error', 'info', 'log', 'warn'].forEach(method => spyOn(Logger.prototype, method));
     spyOn(Utils.prototype, 'resetOutputStyleOnExit');
 
     chalkLevel = chalk.level;
@@ -42,6 +43,7 @@ describe('AbstractCli', () => {
         version: 'mockVersion'
       }
     };
+
     cli = new Cli(config);
   });
 
@@ -56,6 +58,10 @@ describe('AbstractCli', () => {
 
     it('should assign the specified config to a property', () => {
       expect(cli._config).toBe(config);
+    });
+
+    it('should create a `Logger` instance', () => {
+      expect(cli._logger).toEqual(jasmine.any(Logger));
     });
 
     it('should create a `CleanUper` instance', () => {
@@ -77,7 +83,6 @@ describe('AbstractCli', () => {
     it('should not set the process up for style reset if already set-up', () => {
       Utils.prototype.resetOutputStyleOnExit.calls.reset();
 
-
       process.$$resetOutputStyleOnExit = true;
       new Cli(config);
 
@@ -91,14 +96,14 @@ describe('AbstractCli', () => {
     it('should not display anything if no warning message is set in config', () => {
       cli._displayExperimentalTool();
 
-      expect(console.log).not.toHaveBeenCalled();
+      expect(cli._logger.log).not.toHaveBeenCalled();
     });
 
     it('should display the "experimental tool" warning (retrieved from config)', () => {
       config.messages.warnings.WARN_experimentalTool = 'foo';
       cli._displayExperimentalTool();
 
-      expect(console.log.calls.argsFor(0)[0]).toContain('foo');
+      expect(cli._logger.log.calls.argsFor(0)[0]).toContain('foo');
     });
   });
 
@@ -109,22 +114,18 @@ describe('AbstractCli', () => {
     });
 
     it('should call `_displayVersionInfo()` first', () => {
-      console.log.and.callFake(() => expect(cli._displayVersionInfo).toHaveBeenCalled());
-
       cli._displayHeader('', {});
 
-      expect(console.log).toHaveBeenCalled();
+      expect(cli._displayVersionInfo).toHaveBeenCalledBefore(cli._logger.log);
+      expect(cli._logger.log).toHaveBeenCalled();
     });
 
     it('should call `_displayExperimentalTool()` second', () => {
-      console.log.and.callFake(() => expect(cli._displayExperimentalTool).toHaveBeenCalled());
-      cli._displayExperimentalTool.and.callFake(() => {
-        expect(cli._displayVersionInfo).toHaveBeenCalled();
-      });
-
       cli._displayHeader('', {});
 
-      expect(console.log).toHaveBeenCalled();
+      expect(cli._displayVersionInfo).toHaveBeenCalledBefore(cli._displayExperimentalTool);
+      expect(cli._displayExperimentalTool).toHaveBeenCalledBefore(cli._logger.log);
+      expect(cli._logger.log).toHaveBeenCalled();
     });
 
     it('should display the header (after interpolating the provided template with input)', () => {
@@ -133,8 +134,8 @@ describe('AbstractCli', () => {
       cli._displayHeader('foo & bar', input);
       cli._displayHeader('{{ foo }} & {{ bar }}', input);
 
-      expect(console.log.calls.argsFor(0)[0]).toContain('foo & bar');
-      expect(console.log.calls.argsFor(1)[0]).toContain('baz & qux');
+      expect(cli._logger.log.calls.argsFor(0)[0]).toContain('foo & bar');
+      expect(cli._logger.log.calls.argsFor(1)[0]).toContain('baz & qux');
     });
   });
 
@@ -147,10 +148,10 @@ describe('AbstractCli', () => {
 
       cli._displayInstructions(phases, {});
 
-      expect(console.log.calls.argsFor(0)[0]).toContain('foo');
-      expect(console.log.calls.argsFor(0)[0]).toContain('bar');
-      expect(console.log.calls.argsFor(2)[0]).toContain('baz');
-      expect(console.log.calls.argsFor(2)[0]).toContain('qux');
+      expect(cli._logger.log.calls.argsFor(0)[0]).toContain('foo');
+      expect(cli._logger.log.calls.argsFor(0)[0]).toContain('bar');
+      expect(cli._logger.log.calls.argsFor(2)[0]).toContain('baz');
+      expect(cli._logger.log.calls.argsFor(2)[0]).toContain('qux');
     });
 
     it('should not display anything about phases with no instructions', () => {
@@ -161,7 +162,7 @@ describe('AbstractCli', () => {
 
       cli._displayInstructions(phases, {});
 
-      expect(console.log).not.toHaveBeenCalled();
+      expect(cli._logger.log).not.toHaveBeenCalled();
     });
 
     it('should display the instructions of each phase', () => {
@@ -172,10 +173,10 @@ describe('AbstractCli', () => {
 
       cli._displayInstructions(phases, {});
 
-      expect(console.log.calls.argsFor(1)[0]).toContain('instruction 1');
-      expect(console.log.calls.argsFor(2)[0]).toContain('instruction 2');
-      expect(console.log.calls.argsFor(4)[0]).toContain('instruction 3');
-      expect(console.log.calls.argsFor(5)[0]).toContain('instruction 4');
+      expect(cli._logger.log.calls.argsFor(1)[0]).toContain('instruction 1');
+      expect(cli._logger.log.calls.argsFor(2)[0]).toContain('instruction 2');
+      expect(cli._logger.log.calls.argsFor(4)[0]).toContain('instruction 3');
+      expect(cli._logger.log.calls.argsFor(5)[0]).toContain('instruction 4');
     });
 
     it('should interpolate each instruction', () => {
@@ -185,8 +186,8 @@ describe('AbstractCli', () => {
 
       cli._displayInstructions(phases, {bar: 'bar', baz: 'baz'});
 
-      expect(console.log.calls.argsFor(1)[0]).toContain('foo: bar');
-      expect(console.log.calls.argsFor(2)[0]).toContain('baz: qux');
+      expect(cli._logger.log.calls.argsFor(1)[0]).toContain('foo: bar');
+      expect(cli._logger.log.calls.argsFor(2)[0]).toContain('baz: qux');
     });
 
     it('should format `...` specially', () => {
@@ -199,9 +200,9 @@ describe('AbstractCli', () => {
       cli._displayInstructions(phases, {});
 
       /* eslint-disable no-control-regex */
-      expect(console.log.calls.argsFor(1)[0]).not.toContain('`');
-      expect(console.log.calls.argsFor(1)[0]).toMatch(/\u001b\[\S+bar\u001b\[\S+/);
-      expect(console.log.calls.argsFor(1)[0]).toMatch(/\u001b\[\S+qux\u001b\[\S+/);
+      expect(cli._logger.log.calls.argsFor(1)[0]).not.toContain('`');
+      expect(cli._logger.log.calls.argsFor(1)[0]).toMatch(/\u001b\[\S+bar\u001b\[\S+/);
+      expect(cli._logger.log.calls.argsFor(1)[0]).toMatch(/\u001b\[\S+qux\u001b\[\S+/);
       /* eslint-enable no-control-regex */
     });
   });
@@ -213,22 +214,18 @@ describe('AbstractCli', () => {
     });
 
     it('should call `_displayVersionInfo()` first', () => {
-      console.log.and.callFake(() => expect(cli._displayVersionInfo).toHaveBeenCalled());
-
       cli._displayUsage('');
 
-      expect(console.log).toHaveBeenCalled();
+      expect(cli._displayVersionInfo).toHaveBeenCalledBefore(cli._logger.log);
+      expect(cli._logger.log).toHaveBeenCalled();
     });
 
     it('should call `_displayExperimentalTool()` second', () => {
-      console.log.and.callFake(() => expect(cli._displayExperimentalTool).toHaveBeenCalled());
-      cli._displayExperimentalTool.and.callFake(() => {
-        expect(cli._displayVersionInfo).toHaveBeenCalled();
-      });
-
       cli._displayUsage('');
 
-      expect(console.log).toHaveBeenCalled();
+      expect(cli._displayVersionInfo).toHaveBeenCalledBefore(cli._displayExperimentalTool);
+      expect(cli._displayExperimentalTool).toHaveBeenCalledBefore(cli._logger.log);
+      expect(cli._logger.log).toHaveBeenCalled();
     });
 
     it('should display the usage instructions', () => {
@@ -236,7 +233,7 @@ describe('AbstractCli', () => {
 
       cli._displayUsage(message);
 
-      expect(console.log.calls.argsFor(0)[0]).toContain(message);
+      expect(cli._logger.log.calls.argsFor(0)[0]).toContain(message);
     });
 
     it('should format the first line differently', () => {
@@ -245,7 +242,7 @@ describe('AbstractCli', () => {
       forceEnableChalk();
       cli._displayUsage(message);
 
-      let logged = console.log.calls.mostRecent().args[0];
+      let logged = cli._logger.log.calls.mostRecent().args[0];
 
       expect(logged).not.toContain(message);
       expect(logged).toContain(`${chalk.bold('foo')}\n${chalk.gray('bar\nbaz\nqux')}`);
@@ -257,8 +254,8 @@ describe('AbstractCli', () => {
       config.versionInfo = {name: 'foo', version: '1.2.3'};
       cli._displayVersionInfo();
 
-      expect(console.log.calls.argsFor(0)[0]).toContain('foo');
-      expect(console.log.calls.argsFor(0)[0]).toContain('1.2.3');
+      expect(cli._logger.log.calls.argsFor(0)[0]).toContain('foo');
+      expect(cli._logger.log.calls.argsFor(0)[0]).toContain('1.2.3');
     });
   });
 
@@ -432,16 +429,14 @@ describe('AbstractCli', () => {
       let rawArgs = ['--foo=bar'];
       let argSpecs = [new ArgSpec('foo', () => false, 'error')];
 
-      cli.
-        _getAndValidateInput(rawArgs, argSpecs).
-        catch(error => {
+      reversePromise(cli._getAndValidateInput(rawArgs, argSpecs)).
+        then(error => {
           expect(error).toBe('foo');
 
           expect(cli._uiUtils.reportAndRejectFnGen).toHaveBeenCalledWith('error');
           expect(errorCb).toHaveBeenCalledWith();
-
-          done();
-        });
+        }).
+        then(done, done.fail);
     });
   });
 
@@ -449,8 +444,8 @@ describe('AbstractCli', () => {
     it('should just insert an empty line', () => {
       cli._insertEmptyLine(),
 
-      expect(console.log).toHaveBeenCalledTimes(1);
-      expect(console.log).toHaveBeenCalledWith();
+      expect(cli._logger.log).toHaveBeenCalledTimes(1);
+      expect(cli._logger.log).toHaveBeenCalledWith();
     });
   });
 
@@ -462,12 +457,12 @@ describe('AbstractCli', () => {
       cli._theHappyEnd(true);
       cli._theHappyEnd('foo');
 
-      expect(console.log).toHaveBeenCalledTimes(5);
-      expect(console.log.calls.argsFor(0)[0]).toContain('OPERATION COMPLETED SUCCESSFULLY');
-      expect(console.log.calls.argsFor(1)[0]).toContain('OPERATION COMPLETED SUCCESSFULLY');
-      expect(console.log.calls.argsFor(2)[0]).toContain('OPERATION COMPLETED SUCCESSFULLY');
-      expect(console.log.calls.argsFor(3)[0]).toContain('OPERATION COMPLETED SUCCESSFULLY');
-      expect(console.log.calls.argsFor(4)[0]).toContain('OPERATION COMPLETED SUCCESSFULLY');
+      expect(cli._logger.log).toHaveBeenCalledTimes(5);
+      expect(cli._logger.log.calls.argsFor(0)[0]).toContain('OPERATION COMPLETED SUCCESSFULLY');
+      expect(cli._logger.log.calls.argsFor(1)[0]).toContain('OPERATION COMPLETED SUCCESSFULLY');
+      expect(cli._logger.log.calls.argsFor(2)[0]).toContain('OPERATION COMPLETED SUCCESSFULLY');
+      expect(cli._logger.log.calls.argsFor(3)[0]).toContain('OPERATION COMPLETED SUCCESSFULLY');
+      expect(cli._logger.log.calls.argsFor(4)[0]).toContain('OPERATION COMPLETED SUCCESSFULLY');
     });
 
     it('should forward the passed-in value', () => {
@@ -487,36 +482,26 @@ describe('AbstractCli', () => {
     });
 
     it('should not "reportAndReject" if the rejection is empty (just reject)', done => {
-      cli.
-        _theUnhappyEnd().
-        catch(() => {
-          expect(errorCb).not.toHaveBeenCalled();
-
-          done();
-        });
+      reversePromise(cli._theUnhappyEnd()).
+        then(() => expect(errorCb).not.toHaveBeenCalled()).
+        then(done, done.fail);
     });
 
     it('should "reportAndReject" if the rejection is non-empty', done => {
-      cli.
-        _theUnhappyEnd('foo').
-        catch(() => {
+      reversePromise(cli._theUnhappyEnd('foo')).
+        then(() => {
           expect(cli._uiUtils.reportAndRejectFnGen).toHaveBeenCalledWith('ERROR_unexpected');
           expect(errorCb).toHaveBeenCalledWith('foo');
-
-          done();
-        });
+        }).
+        then(done, done.fail);
     });
 
     it('should reject with the value returned by "reportAndReject"', done => {
       errorCb.and.returnValue(Promise.reject('foo'));
 
-      cli.
-        _theUnhappyEnd(true).
-        catch(error => {
-          expect(error).toBe('foo');
-
-          done();
-        });
+      reversePromise(cli._theUnhappyEnd(true)).
+        then(error => expect(error).toBe('foo')).
+        then(done, done.fail);
     });
   });
 
@@ -588,9 +573,7 @@ describe('AbstractCli', () => {
 
     it('should display the instructions (and "return") if `--instructions` is detected', done => {
       spyOn(cli, '_displayHeader');
-      spyOn(cli, '_displayInstructions').and.callFake(() => {
-        expect(cli._displayHeader).toHaveBeenCalledWith('mockInstructionsHeaderTmpl', input);
-      });
+      spyOn(cli, '_displayInstructions');
       spyOn(cli, 'getPhases').and.returnValue([]);
 
       input.instructions = true;
@@ -598,6 +581,8 @@ describe('AbstractCli', () => {
       cli.
         run([], doWorkSpy).
         then(() => {
+          expect(cli._displayHeader).toHaveBeenCalledWith('mockInstructionsHeaderTmpl', input);
+          expect(cli._displayHeader).toHaveBeenCalledBefore(cli._displayInstructions);
           expect(cli._displayInstructions).toHaveBeenCalledWith([], input);
           expect(doWorkSpy).not.toHaveBeenCalled();
         }).
@@ -630,15 +615,11 @@ describe('AbstractCli', () => {
     });
 
     it('should reject the returned promise with undefined', done => {
-      spyOn(console, 'error');
       doWorkSpy.and.returnValue(Promise.reject('Test'));
 
-      cli.
-        run([], doWorkSpy).
-        catch(error => {
-          expect(error).toBeUndefined();
-          done();
-        });
+      reversePromise(cli.run([], doWorkSpy)).
+        then(error => expect(error).toBeUndefined()).
+        then(done, done.fail);
     });
 
     ['Test', Promise.resolve('Test')].forEach(returnValue => {
@@ -660,18 +641,15 @@ describe('AbstractCli', () => {
       spyOn(cli, '_theUnhappyEnd').and.returnValue(Promise.reject());
       doWorkSpy.and.returnValue(Promise.reject('Test'));
 
-      cli.
-        run([], doWorkSpy).
-        catch(() => {
+      reversePromise(cli.run([], doWorkSpy)).
+        then(() => {
           expect(cli._theUnhappyEnd).toHaveBeenCalledWith('Test');
           expect(cli._theHappyEnd).not.toHaveBeenCalledWith();
-
-          done();
-        });
+        }).
+        then(done, done.fail);
     });
 
     it('should call `_insertEmptyLine()` at the end (no matter what)', done => {
-      spyOn(console, 'error');
       spyOn(cli, '_insertEmptyLine');
       spyOn(cli, '_theUnhappyEnd').and.callFake(err => Promise.reject(err));
       spyOn(cli, 'getPhases').and.returnValue([]);

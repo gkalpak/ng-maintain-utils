@@ -7,13 +7,14 @@ let PassThrough = stream.PassThrough;
 
 // Imports - Local
 let Utils = require('../../lib/utils');
+let MockLogger = require('../helpers/mock-logger');
 
 // Tests
 describe('Utils', () => {
   let utils;
 
   beforeEach(() => {
-    utils = new Utils();
+    utils = new Utils(new MockLogger());
   });
 
   describe('#spawnAsPromised()', () => {

@@ -6,6 +6,7 @@ let ArgSpec = require('./lib/arg-spec');
 let CleanUper = require('./lib/clean-uper');
 let Config = require('./lib/config');
 let GitUtils = require('./lib/git-utils');
+let Logger = require('./lib/logger');
 let Phase = require('./lib/phase');
 let UiUtils = require('./lib/ui-utils');
 let Utils = require('./lib/utils');
@@ -17,6 +18,7 @@ module.exports = {
   CleanUper,
   Config,
   GitUtils,
+  Logger,
   Phase,
   UiUtils,
   Utils

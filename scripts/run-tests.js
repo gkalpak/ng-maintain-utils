@@ -16,7 +16,7 @@ _main(process.argv.slice(2));
 
 // Functions - Definitions
 function _main(args) {
-  args = (new Utils).parseArgs(args);
+  args = new Utils(console).parseArgs(args);
 
   let testType = args.type || '';
   let watch = args.watch;

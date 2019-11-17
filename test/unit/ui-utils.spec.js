@@ -8,9 +8,12 @@ let readline = require('readline');
 let CleanUper = require('../../lib/clean-uper');
 let Phase = require('../../lib/phase');
 let UiUtils = require('../../lib/ui-utils');
+let MockLogger = require('../helpers/mock-logger');
+let {reversePromise} = require('../helpers/utils');
 
 // Tests
 describe('UiUtils', () => {
+  let mockLogger;
   let chalkLevel;
   let cleanUper;
   let errorMessages;
@@ -20,9 +23,10 @@ describe('UiUtils', () => {
     chalkLevel = chalk.level;
     chalk.level = 0;
 
-    cleanUper = new CleanUper();
+    mockLogger = new MockLogger();
+    cleanUper = new CleanUper(mockLogger);
     errorMessages = {};
-    uiUtils = new UiUtils(cleanUper, errorMessages);
+    uiUtils = new UiUtils(mockLogger, cleanUper, errorMessages);
   });
 
   afterEach(() => {
@@ -178,7 +182,6 @@ describe('UiUtils', () => {
       cleanUpPhase = cleanUper.getCleanUpPhase();
       deferred = {};
 
-      spyOn(console, 'log');
       spyOn(cleanUper, 'cleanUp');
       spyOn(cleanUper, 'getCleanUpPhase').and.returnValue(cleanUpPhase);
 
@@ -237,14 +240,13 @@ describe('UiUtils', () => {
     beforeEach(() => {
       dummyDoWork = () => new Promise(() => {});
 
-      spyOn(console, 'log');
       spyOn(uiUtils, 'reportAndRejectFnGen');
     });
 
     it('should log the phase\'s ID and description to the console', () => {
       uiUtils.phase(new Phase('foo', 'bar'), dummyDoWork);
 
-      expect(console.log.calls.argsFor(0)[0]).toMatch(/\WPHASE foo\W+bar\W/);
+      expect(mockLogger.logs.log[0][0]).toMatch(/\WPHASE foo\W+bar\W/);
     });
 
     it('should only accept a `doWork` callback that returns a promise', () => {
@@ -265,29 +267,27 @@ describe('UiUtils', () => {
     });
 
     it('should report to the console when the work is done', done => {
+      let logLogs = mockLogger.logs.log;
       let doWork = () => {
-        expect(console.log.calls.mostRecent().args[0]).not.toContain('done');
+        expect(logLogs[logLogs.length - 1][0]).not.toContain('done');
         return Promise.resolve();
       };
 
       uiUtils.
         phase({}, doWork).
-        then(() => expect(console.log.calls.mostRecent().args[0]).toContain('done')).
+        then(() => expect(logLogs[logLogs.length - 1][0]).toContain('done')).
         then(done, done.fail);
     });
 
     it('should not report to the console if `doWork()` errors', done => {
       let doWork = () => {
-        console.log.calls.reset();
+        mockLogger.clear();
         return Promise.reject();
       };
 
-      uiUtils.
-        phase({}, doWork).
-        catch(() => {
-          expect(console.log).not.toHaveBeenCalled();
-          done();
-        });
+      reversePromise(uiUtils.phase({}, doWork)).
+        then(() => expect(mockLogger.logs.log).toEqual([])).
+        then(done, done.fail);
     });
 
     it('should set up an error callback with the appropriate error', done => {
@@ -330,9 +330,6 @@ describe('UiUtils', () => {
 
   describe('#reportAndRejectFnGen()', () => {
     beforeEach(() => {
-      spyOn(console, 'error');
-      spyOn(console, 'log');
-
       spyOn(cleanUper, 'hasTasks');
       spyOn(uiUtils, 'offerToCleanUp').and.returnValue(Promise.resolve());
     });
@@ -353,12 +350,12 @@ describe('UiUtils', () => {
       it('should log to the console the specified error (if any)', () => {
         reportAndReject(null, null, 'Test');
 
-        expect(console.error.calls.argsFor(0)[1]).toBe('Test');
+        expect(mockLogger.logs.error[0][1]).toBe('Test');
       });
 
       it('should mention that clean-up might be needed', () => {
         reportAndReject();
-        let message = console.error.calls.argsFor(0)[0].toLowerCase();
+        let message = mockLogger.logs.error[0][0].toLowerCase();
 
         expect(message).toContain('clean-up', 'might', 'needed');
       });
@@ -366,20 +363,20 @@ describe('UiUtils', () => {
       it('should mention that the operation was aborted', () => {
         reportAndReject();
 
-        expect(console.error.calls.argsFor(0)[0]).toContain('OPERATION ABORTED');
+        expect(mockLogger.logs.error[0][0]).toContain('OPERATION ABORTED');
       });
 
       it('should retrieve the error message based on the specified `errorOrCode`', () => {
         errorMessages.foo = 'bar';
         reportAndReject('foo');
 
-        expect(console.error.calls.argsFor(0)[0]).toContain('ERROR: bar');
+        expect(mockLogger.logs.error[0][0]).toContain('ERROR: bar');
       });
 
       it('should use `errorOrCode` itself if it does not match any error message', () => {
         reportAndReject('unknown code');
 
-        expect(console.error.calls.argsFor(0)[0]).toContain('ERROR: unknown code');
+        expect(mockLogger.logs.error[0][0]).toContain('ERROR: unknown code');
       });
 
       it('should use a default error message if `errorOrCode` is falsy', () => {
@@ -389,7 +386,8 @@ describe('UiUtils', () => {
         reportAndReject(0);
         reportAndReject('');
 
-        console.error.calls.allArgs().forEach(args => {
+        expect(mockLogger.logs.error.length).toBe(5);
+        mockLogger.logs.error.forEach(args => {
           expect(args[0]).toContain('ERROR: <no error code>');
         });
       });
@@ -431,8 +429,10 @@ describe('UiUtils', () => {
         cleanUper.hasTasks.and.returnValue(true);
         uiUtils.offerToCleanUp.and.returnValue(Promise.reject('Test'));
 
+        let errorLogs = mockLogger.logs.error;
+
         reversePromise(uiUtils.reportAndRejectFnGen()()).
-          then(() => expect(console.error.calls.mostRecent().args[1]).toBe('Test')).
+          then(() => expect(errorLogs[errorLogs.length - 1][1]).toBe('Test')).
           then(done, done.fail);
       });
 
@@ -442,9 +442,10 @@ describe('UiUtils', () => {
           uiUtils.offerToCleanUp.and.returnValue(Promise.reject());
 
           errorMessages.ERROR_unexpected = 'Wait, whaaat?';
+          let errorLogs = mockLogger.logs.error;
 
           reversePromise(uiUtils.reportAndRejectFnGen()()).
-            then(() => expect(console.error.calls.mostRecent().args[1]).toBe('Wait, whaaat?')).
+            then(() => expect(errorLogs[errorLogs.length - 1][1]).toBe('Wait, whaaat?')).
             then(done, done.fail);
         }
       );
@@ -460,10 +461,4 @@ describe('UiUtils', () => {
       return promise;
     }
   });
-
-  // Helpers
-  function reversePromise(promise) {
-    // "Reverse" the promise; i.e the desired outcome is for this promise to be rejected.
-    return promise.then(v => Promise.reject(v), e => Promise.resolve(e));
-  }
 });

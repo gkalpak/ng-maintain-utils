@@ -13,16 +13,19 @@ let DiffHighlighter = require('../../lib/diff-highlighter');
 let DiffHighlighter2 = require('../../lib/diff-highlighter2');
 let GitUtils = require('../../lib/git-utils');
 let Utils = require('../../lib/utils');
+let MockLogger = require('../helpers/mock-logger');
 
 // Tests
 describe('GitUtils', () => {
+  let mockLogger;
   let cleanUper;
   let utils;
   let deferred;
 
   beforeEach(() => {
-    cleanUper = new CleanUper();
-    utils = new Utils();
+    mockLogger = new MockLogger();
+    cleanUper = new CleanUper(mockLogger);
+    utils = new Utils(mockLogger);
 
     deferred = {};
     ['execAsPromised', 'spawnAsPromised'].forEach(methodName => {

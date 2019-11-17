@@ -8,14 +8,17 @@ let EventEmitter = events.EventEmitter;
 
 // Imports - Local
 let Utils = require('../../lib/utils');
+let MockLogger = require('../helpers/mock-logger');
 let {reversePromise} = require('../helpers/utils');
 
 // Tests
 describe('Utils', () => {
+  let mockLogger;
   let utils;
 
   beforeEach(() => {
-    utils = new Utils();
+    mockLogger = new MockLogger();
+    utils = new Utils(mockLogger);
   });
 
   describe('#asPromised()', () => {
@@ -248,7 +251,6 @@ describe('Utils', () => {
         write: jasmine.createSpy('mockProc.stdout.write')
       };
 
-      spyOn(console, 'warn');
       spyOn(mockProc, 'on').and.callThrough();
 
       utils.resetOutputStyleOnExit(mockProc);
@@ -304,7 +306,7 @@ describe('Utils', () => {
     it('should warn and do nothing if the process is already set up for reset', () => {
       let errorMsg = 'The process is already set up for output style reset on exit.';
 
-      expect(console.warn).not.toHaveBeenCalled();
+      expect(mockLogger.logs.warn).toEqual([]);
       expect(mockProc.on).toHaveBeenCalledTimes(2);
       expect(mockProc.on).toHaveBeenCalledWith('exit', jasmine.any(Function));
       expect(mockProc.on).toHaveBeenCalledWith('SIGINT', jasmine.any(Function));
@@ -312,7 +314,7 @@ describe('Utils', () => {
       mockProc.on.calls.reset();
 
       utils.resetOutputStyleOnExit(mockProc);
-      expect(console.warn).toHaveBeenCalledWith(errorMsg);
+      expect(mockLogger.logs.warn[0]).toEqual([errorMsg]);
       expect(mockProc.on).not.toHaveBeenCalled();
     });
   });

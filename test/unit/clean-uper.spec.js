@@ -3,22 +3,21 @@
 // Imports - Local
 let CleanUper = require('../../lib/clean-uper');
 let Phase = require('../../lib/phase');
+let MockLogger = require('../helpers/mock-logger');
 
 // Tests
 describe('CleanUper', () => {
+  let mockLogger;
   let cleanUper;
 
   beforeEach(() => {
-    cleanUper = new CleanUper();
+    mockLogger = new MockLogger();
+    cleanUper = new CleanUper(mockLogger);
   });
 
   describe('#cleanUp()', () => {
     let doCleanUp = () => cleanUper.cleanUp(listOnly);
     let listOnly;
-
-    beforeEach(() => {
-      spyOn(console, 'log');
-    });
 
     [false, true].forEach(value => {
       beforeEach(() => {
@@ -85,10 +84,10 @@ describe('CleanUper', () => {
 
           doCleanUp().
             then(() => {
-              expect(console.log).toHaveBeenCalledTimes(3);
-              expect(console.log.calls.argsFor(0)[0]).toContain('baz');
-              expect(console.log.calls.argsFor(1)[0]).toContain('bar');
-              expect(console.log.calls.argsFor(2)[0]).toContain('foo');
+              expect(mockLogger.logs.log.length).toBe(3);
+              expect(mockLogger.logs.log[0][0]).toContain('baz');
+              expect(mockLogger.logs.log[1][0]).toContain('bar');
+              expect(mockLogger.logs.log[2][0]).toContain('foo');
             }).
             then(done, done.fail);
         });

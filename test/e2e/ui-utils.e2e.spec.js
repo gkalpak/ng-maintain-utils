@@ -2,22 +2,27 @@
 
 // Imports
 let chalk = require('chalk');
+let {PassThrough} = require('stream');
 
 // Imports - Local
 let CleanUper = require('../../lib/clean-uper');
 let Phase = require('../../lib/phase');
 let UiUtils = require('../../lib/ui-utils');
+let MockLogger = require('../helpers/mock-logger');
+let {reversePromise} = require('../helpers/utils');
 
 // Tests
 describe('UiUtils', () => {
   let chalkLevel;
+  let mockLogger;
   let uiUtils;
 
   beforeEach(() => {
-    let cleanUper = new CleanUper();
+    mockLogger = new MockLogger();
+    let cleanUper = new CleanUper(mockLogger);
     let errorMessages = {'test': 'TestError'};
 
-    uiUtils = new UiUtils(cleanUper, errorMessages);
+    uiUtils = new UiUtils(mockLogger, cleanUper, errorMessages);
 
     chalkLevel = chalk.level;
     chalk.level = 0;
@@ -75,17 +80,15 @@ describe('UiUtils', () => {
     });
 
     it('should reject the returned promise for "no" (default: no)', done => {
-      uiUtils.
-        askYesOrNoQuestion('Are you sure?').
-        catch(done);
+      reversePromise(uiUtils.askYesOrNoQuestion('Are you sure?')).
+        then(done, done.fail);
 
       process.stdin.emit('data', '\n');
     });
 
     it('should reject the returned promise for "no" (default: yes)', done => {
-      uiUtils.
-        askYesOrNoQuestion('Any doubts?').
-        catch(done);
+      reversePromise(uiUtils.askYesOrNoQuestion('Any doubts?', true)).
+        then(done, done.fail);
 
       process.stdin.emit('data', 'n\n');
     });
@@ -96,9 +99,6 @@ describe('UiUtils', () => {
 
     beforeEach(() => {
       phase = new Phase('TEST_PHASE', 'Good for testing', null, 'test');
-
-      spyOn(console, 'error');
-      spyOn(console, 'log');
     });
 
     it('should do some work in the context of a phase', done => {
@@ -109,10 +109,10 @@ describe('UiUtils', () => {
         then(value => {
           expect(value).toBe('foo');
 
-          expect(console.log.calls.argsFor(0)[0]).toContain('PHASE TEST_PHASE - Good for testing');
-          expect(console.log.calls.argsFor(1)[0]).toContain('done');
+          expect(mockLogger.logs.log[0][0]).toContain('PHASE TEST_PHASE - Good for testing');
+          expect(mockLogger.logs.log[1][0]).toContain('done');
 
-          expect(console.error).not.toHaveBeenCalled();
+          expect(mockLogger.logs.error).toEqual([]);
         }).
         then(done, done.fail);
     });
@@ -123,14 +123,14 @@ describe('UiUtils', () => {
       uiUtils.
         phase(phase, doWork).
         catch(() => {
-          expect(console.log).toHaveBeenCalledTimes(1);
-          expect(console.log.calls.argsFor(0)[0]).toContain('PHASE TEST_PHASE - Good for testing');
+          expect(mockLogger.logs.log.length).toBe(1);
+          expect(mockLogger.logs.log[0][0]).toContain('PHASE TEST_PHASE - Good for testing');
 
-          let errCalls = console.error.calls;
-          expect(errCalls.argsFor(0)).toEqual(jasmine.arrayContaining(['bar']));
-          expect(errCalls.argsFor(1)[0]).toContain('TestError');
-          expect(errCalls.argsFor(1)[0]).toContain('Clean-up might or might not be needed.');
-          expect(errCalls.argsFor(1)[0]).toContain('OPERATION ABORTED');
+          let errorLogs = mockLogger.logs.error;
+          expect(errorLogs[0]).toEqual(jasmine.arrayContaining(['bar']));
+          expect(errorLogs[1][0]).toContain('TestError');
+          expect(errorLogs[1][0]).toContain('Clean-up might or might not be needed.');
+          expect(errorLogs[1][0]).toContain('OPERATION ABORTED');
 
           done();
         });
@@ -141,7 +141,8 @@ describe('UiUtils', () => {
       let cleanUp;
 
       beforeEach(() => {
-        spyOn(process.stdout, 'write');
+        spyOnProperty(process, 'stdin').and.returnValue(new PassThrough());
+        spyOnProperty(process, 'stdout').and.returnValue(new PassThrough());
 
         doWork = () => Promise.reject();
         cleanUp = jasmine.createSpy('cleanUp');
@@ -153,77 +154,73 @@ describe('UiUtils', () => {
       });
 
       it('should be done if available and confirmed', done => {
-        uiUtils.
-          phase(phase, doWork).
-          catch(() => {
-            let logCalls = console.log.calls;
-            let errCalls = console.error.calls;
+        reversePromise(uiUtils.phase(phase, doWork)).
+          then(() => {
+            let logLogs = mockLogger.logs.log;
+            let errorLogs = mockLogger.logs.error;
 
-            expect(logCalls.argsFor(0)[0]).toContain('PHASE TEST_PHASE - Good for testing');
+            expect(logLogs[0][0]).toContain('PHASE TEST_PHASE - Good for testing');
 
-            expect(errCalls.argsFor(0)[0]).toContain('TestError');
-            expect(errCalls.argsFor(0)[0]).toContain('Clean-up might or might not be needed.');
-            expect(errCalls.argsFor(0)[0]).toContain('OPERATION ABORTED');
+            expect(errorLogs[0][0]).toContain('TestError');
+            expect(errorLogs[0][0]).toContain('Clean-up might or might not be needed.');
+            expect(errorLogs[0][0]).toContain('OPERATION ABORTED');
 
-            expect(logCalls.argsFor(1)[0]).toContain('PHASE X - Trying to clean up the mess');
-            expect(logCalls.argsFor(2)[0]).toContain('Clean-up task: Do some clean-up');
-            expect(logCalls.argsFor(3)[0]).toContain('Clean-up task: Do some clean-up');
-            expect(logCalls.argsFor(4)[0]).toContain('done');
+            expect(logLogs[1][0]).toContain('PHASE X - Trying to clean up the mess');
+            expect(logLogs[2][0]).toContain('Clean-up task: Do some clean-up');
+            expect(logLogs[3][0]).toContain('Clean-up task: Do some clean-up');
+            expect(logLogs[4][0]).toContain('done');
 
             expect(cleanUp).toHaveBeenCalledTimes(2);
             expect(uiUtils._cleanUper.hasTasks()).toBe(false);
-
-            done();
-          });
+          }).
+          then(done, done.fail);
 
         setTimeout(() => process.stdin.emit('data', 'y\n'));
       });
 
       it('should be skipped (but list tasks) if not confirmed', done => {
-        uiUtils.
-          phase(phase, doWork).
-          catch(() => {
-            let logCalls = console.log.calls;
-            let errCalls = console.error.calls;
+        reversePromise(uiUtils.phase(phase, doWork)).
+          then(() => {
+            let logLogs = mockLogger.logs.log;
+            let errorLogs = mockLogger.logs.error;
 
-            expect(logCalls.argsFor(0)[0]).toContain('PHASE TEST_PHASE - Good for testing');
+            expect(logLogs[0][0]).toContain('PHASE TEST_PHASE - Good for testing');
 
-            expect(errCalls.argsFor(0)[0]).toContain('TestError');
-            expect(errCalls.argsFor(0)[0]).toContain('Clean-up might or might not be needed.');
-            expect(errCalls.argsFor(0)[0]).toContain('OPERATION ABORTED');
+            expect(errorLogs[0][0]).toContain('TestError');
+            expect(errorLogs[0][0]).toContain('Clean-up might or might not be needed.');
+            expect(errorLogs[0][0]).toContain('OPERATION ABORTED');
 
-            expect(logCalls.argsFor(1)[0]).toContain('OK, I\'m not doing anything');
-            expect(logCalls.argsFor(1)[0]).toContain('the pending tasks (afaik) are');
-            expect(logCalls.argsFor(2)[0]).toContain('Clean-up task: Do some clean-up');
-            expect(logCalls.argsFor(3)[0]).toContain('Clean-up task: Do some clean-up');
+            expect(logLogs[1][0]).toContain('OK, I\'m not doing anything');
+            expect(logLogs[1][0]).toContain('the pending tasks (afaik) are');
+            expect(logLogs[2][0]).toContain('Clean-up task: Do some clean-up');
+            expect(logLogs[3][0]).toContain('Clean-up task: Do some clean-up');
+
             expect(cleanUp).not.toHaveBeenCalled();
             expect(uiUtils._cleanUper.hasTasks()).toBe(false);
-
-            done();
-          });
+          }).
+          then(done, done.fail);
 
         setTimeout(() => process.stdin.emit('data', '\n'));
       });
 
       it('should be skipped altogether if `skipCleanUp: true`', done => {
-        uiUtils.
-          phase(phase, doWork, true).
-          catch(() => {
-            let logCalls = console.log.calls;
-            let errCalls = console.error.calls;
+        reversePromise(uiUtils.phase(phase, doWork, true)).
+          then(() => {
+            let logLogs = mockLogger.logs.log;
+            let errorLogs = mockLogger.logs.error;
 
-            expect(logCalls.argsFor(0)[0]).toContain('PHASE TEST_PHASE - Good for testing');
+            expect(logLogs[0][0]).toContain('PHASE TEST_PHASE - Good for testing');
 
-            expect(errCalls.argsFor(0)[0]).toContain('TestError');
-            expect(errCalls.argsFor(0)[0]).toContain('Clean-up might or might not be needed.');
-            expect(errCalls.argsFor(0)[0]).toContain('OPERATION ABORTED');
+            expect(errorLogs[0][0]).toContain('TestError');
+            expect(errorLogs[0][0]).toContain('Clean-up might or might not be needed.');
+            expect(errorLogs[0][0]).toContain('OPERATION ABORTED');
 
-            expect(console.log).toHaveBeenCalledTimes(1);
+            expect(logLogs.length).toBe(1);
+
             expect(cleanUp).not.toHaveBeenCalled();
             expect(uiUtils._cleanUper.hasTasks()).toBe(true);
-
-            done();
-          });
+          }).
+          then(done, done.fail);
       });
     });
   });

@@ -2,12 +2,15 @@
 
 // Imports
 let chalk = require('chalk');
+let {PassThrough} = require('stream');
 
 // Imports - Local
 let AbstractCli = require('../../lib/abstract-cli');
 let ArgSpec = require('../../lib/arg-spec');
 let Config = require('../../lib/config');
+let Logger = require('../../lib/logger');
 let Phase = require('../../lib/phase');
+let {reversePromise} = require('../helpers/utils');
 
 // Tests
 describe('AbstractCli', () => {
@@ -15,6 +18,8 @@ describe('AbstractCli', () => {
   let config;
   let cli;
   let doWork;
+  let errorSpy;
+  let logSpy;
 
   beforeEach(() => {
     let argSpecs = [
@@ -71,8 +76,8 @@ describe('AbstractCli', () => {
 
     chalk.level = 0;
 
-    spyOn(console, 'error');
-    spyOn(console, 'log');
+    errorSpy = spyOn(Logger.prototype, 'error');
+    logSpy = spyOn(Logger.prototype, 'log');
   });
 
   afterEach(() => {
@@ -87,9 +92,9 @@ describe('AbstractCli', () => {
 
       cli.
         run(rawArgs, doWork).
-        then(() => console.log.calls.allArgs()).
+        then(() => logSpy.calls.allArgs()).
         then(args => {
-          expect(console.log).toHaveBeenCalledTimes(1);
+          expect(logSpy).toHaveBeenCalledTimes(1);
           expect(args[0][0]).toContain(versionMessage);
           expect(args[0][0]).not.toContain(warningMessage);
 
@@ -105,9 +110,9 @@ describe('AbstractCli', () => {
 
       cli.
         run(rawArgs, doWork).
-        then(() => console.log.calls.allArgs()).
+        then(() => logSpy.calls.allArgs()).
         then(args => {
-          expect(console.log).toHaveBeenCalledTimes(1);
+          expect(logSpy).toHaveBeenCalledTimes(1);
           expect(args[0][0]).toContain(versionMessage);
           expect(args[0][0]).not.toContain(usageMessage);
         }).
@@ -121,9 +126,9 @@ describe('AbstractCli', () => {
 
       cli.
         run(rawArgs, doWork).
-        then(() => console.log.calls.allArgs()).
+        then(() => logSpy.calls.allArgs()).
         then(args => {
-          expect(console.log).toHaveBeenCalledTimes(1);
+          expect(logSpy).toHaveBeenCalledTimes(1);
           expect(args[0][0]).toContain(versionMessage);
           expect(args[0][0]).not.toContain(instructionsHeader);
         }).
@@ -140,7 +145,7 @@ describe('AbstractCli', () => {
 
       cli.
         run(rawArgs, doWork).
-        then(() => console.log.calls.allArgs()).
+        then(() => logSpy.calls.allArgs()).
         then(args => {
           expect(args[0][0]).toContain(versionMessage);
           expect(args[1][0]).toContain(warningMessage);
@@ -161,9 +166,9 @@ describe('AbstractCli', () => {
 
       cli.
         run(rawArgs, doWork).
-        then(() => console.log.calls.allArgs()).
+        then(() => logSpy.calls.allArgs()).
         then(args => {
-          expect(console.log).toHaveBeenCalledTimes(2);
+          expect(logSpy).toHaveBeenCalledTimes(2);
           expect(args[0][0]).toContain(versionMessage);
           expect(args[1][0]).not.toContain(warningMessage);
           expect(args[1][0]).toContain(usageMessage);
@@ -182,9 +187,9 @@ describe('AbstractCli', () => {
 
       cli.
         run(rawArgs, doWork).
-        then(() => console.log.calls.allArgs()).
+        then(() => logSpy.calls.allArgs()).
         then(args => {
-          expect(console.log).toHaveBeenCalledTimes(3);
+          expect(logSpy).toHaveBeenCalledTimes(3);
           expect(args[0][0]).toContain(versionMessage);
           expect(args[0][0]).not.toContain(instructionsHeader);
           expect(args[1][0]).toContain(warningMessage);
@@ -206,7 +211,7 @@ describe('AbstractCli', () => {
 
         cli.
           run(rawArgs, doWork).
-          then(() => console.log.calls.allArgs()).
+          then(() => logSpy.calls.allArgs()).
           then(args => {
             expect(args[++idx][0]).toContain(versionMessage);
             expect(args[++idx][0]).toContain(warningMessage);
@@ -237,7 +242,7 @@ describe('AbstractCli', () => {
 
       cli.
         run(rawArgs, doWork).
-        then(() => console.log.calls.allArgs()).
+        then(() => logSpy.calls.allArgs()).
         then(args => {
           expect(args[0][0]).toContain(versionMessage);
           expect(args[1][0]).not.toContain(warningMessage);
@@ -253,9 +258,9 @@ describe('AbstractCli', () => {
       cli.
         run(rawArgs, doWork).
         catch(() => {
-          let args = console.error.calls.allArgs();
+          let args = errorSpy.calls.allArgs();
 
-          expect(console.log).not.toHaveBeenCalled();
+          expect(logSpy).not.toHaveBeenCalled();
           expect(args[++idx][0]).not.toContain('Instructions');
           expect(args[  idx][0]).toContain('There is a problem with your FOO');
           expect(args[  idx][0]).toContain('Clean-up might or might not be needed');
@@ -291,11 +296,11 @@ describe('AbstractCli', () => {
       let warningMessage = config.messages.warnings.WARN_experimentalTool;
       let idx = -1;
 
-      doWork = () => console.log('Hack...hack...hack...');
+      doWork = () => logSpy('Hack...hack...hack...');
 
       cli.
         run(rawArgs, doWork).
-        then(() => console.log.calls.allArgs()).
+        then(() => logSpy.calls.allArgs()).
         then(args => {
           expect(args[++idx][0]).toContain(versionMessage);
           expect(args[++idx][0]).toContain(warningMessage);
@@ -310,37 +315,33 @@ describe('AbstractCli', () => {
       let rawArgs = ['--foo=foof', 'zzaabb'];
       doWork = () => { throw 'Pwned'; };
 
-      cli.
-        run(rawArgs, doWork).
-        catch(error => {
+      reversePromise(cli.run(rawArgs, doWork)).
+        then(error => {
           expect(error).toBe(undefined);
 
-          console.log.calls.allArgs().forEach(args => {
+          logSpy.calls.allArgs().forEach(args => {
             expect(args[0]).not.toContain('OPERATION COMPLETED SUCCESSFULLY');
           });
-
-          done();
-        });
+        }).
+        then(done, done.fail);
     });
 
     it('should reject if any argument is invalid (and not do any work)', done => {
       let rawArgs = ['bbaazz'];
       let idx = -1;
 
-      cli.
-        run(rawArgs, doWork).
-        catch(() => {
-          let args = console.error.calls.allArgs();
+      reversePromise(cli.run(rawArgs, doWork)).
+        then(() => {
+          let args = errorSpy.calls.allArgs();
 
           expect(doWork).not.toHaveBeenCalled();
-          expect(console.log).not.toHaveBeenCalled();
+          expect(logSpy).not.toHaveBeenCalled();
 
           expect(args[++idx][0]).toContain('There is a problem with your BAZ');
           expect(args[  idx][0]).toContain('Clean-up might or might not be needed');
           expect(args[  idx][0]).toContain('OPERATION ABORTED');
-
-          done();
-        });
+        }).
+        then(done, done.fail);
     });
 
     describe('- Business as usual (with multiple phases and clean-ups and everything)', () => {
@@ -361,7 +362,7 @@ describe('AbstractCli', () => {
         phaseWorkFns = [
           foo => {
             let tasks = cli._utils.interpolate(phases[0].instructions.join(', '), {foo, bar: foo});
-            console.log(`Using ${foo} to: ${tasks}...`);
+            logSpy(`Using ${foo} to: ${tasks}...`);
 
             cli._cleanUper.schedule(cleanUpTasks.foo);
             cubicle.push('foo');
@@ -369,8 +370,7 @@ describe('AbstractCli', () => {
             cli._cleanUper.withTask(cleanUpTasks.foo, () => cubicle.push('foo'));
           },
           bar => {
-            console.log(`Using ${bar} to: ${phases[1].instructions.join(', ')}...`);
-
+            logSpy(`Using ${bar} to: ${phases[1].instructions.join(', ')}...`);
             cleanUp('foo');
 
             cli._cleanUper.withTask(cleanUpTasks.bar, () => {
@@ -386,7 +386,7 @@ describe('AbstractCli', () => {
             cubicle.push('bar');
           },
           baz => {
-            console.log(`Using ${baz} to: ${phases[2].instructions.join(', ')}...`);
+            logSpy(`Using ${baz} to: ${phases[2].instructions.join(', ')}...`);
 
             cli._cleanUper.unschedule(cleanUpTasks.bar);
             cli._cleanUper.unschedule(cleanUpTasks.foo);
@@ -400,7 +400,7 @@ describe('AbstractCli', () => {
           },
           qux => {
             let tasks = cli._utils.interpolate(phases[3].instructions.join(', '), {baz: qux, qux});
-            console.log(`Using ${qux} to: ${tasks}...`);
+            logSpy(`Using ${qux} to: ${tasks}...`);
 
             cli._cleanUper.unschedule(cleanUpTasks.baz);
 
@@ -429,7 +429,7 @@ describe('AbstractCli', () => {
 
         cli.
           run(['zzzab', 'qux'], doWork).
-          then(() => console.log.calls.allArgs()).
+          then(() => logSpy.calls.allArgs()).
           then(args => {
             let messages = [
               versionMessage,
@@ -460,7 +460,8 @@ describe('AbstractCli', () => {
 
       [false, true].forEach(confirmCleanUp => {
         it(`should work as expected when errors occur (clean-up: ${confirmCleanUp})`, done => {
-          spyOn(process.stdout, 'write');
+          spyOnProperty(process, 'stdin').and.returnValue(new PassThrough());
+          spyOnProperty(process, 'stdout').and.returnValue(new PassThrough());
 
           let input;
           doWork = inp => {
@@ -469,7 +470,7 @@ describe('AbstractCli', () => {
             let resolve = Promise.resolve.bind(Promise);
 
             /* eslint-disable jasmine/no-promise-without-done-fail */
-            return Promise.resolve().
+            return resolve().
               then(() => cli._uiUtils.phase(phases[0], () => resolve(phaseWorkFns[0](inp.foo)))).
               then(() => cli._uiUtils.phase(phases[1], () => resolve(phaseWorkFns[1](inp.bar)).
                 then(() => Promise.reject('You should not have done that')))).
@@ -481,11 +482,10 @@ describe('AbstractCli', () => {
           let versionMessage = ` ${config.versionInfo.name}  v${config.versionInfo.version} `;
           let warningMessage = config.messages.warnings.WARN_experimentalTool;
 
-          cli.
-            run(['zzzab', 'qux'], doWork).
-            catch(() => {
-              let errArgs = console.error.calls.allArgs();
-              let logArgs = console.log.calls.allArgs();
+          reversePromise(cli.run(['zzzab', 'qux'], doWork)).
+            then(() => {
+              let errArgs = errorSpy.calls.allArgs();
+              let logArgs = logSpy.calls.allArgs();
               let logMessages = [
                 versionMessage,
                 warningMessage,
@@ -506,12 +506,12 @@ describe('AbstractCli', () => {
                 '- Clean-up task: Clean up FOO',
               ]);
 
-              expect(console.log).toHaveBeenCalledTimes(logMessages.length);
+              expect(logSpy).toHaveBeenCalledTimes(logMessages.length);
               logMessages.forEach((message, idx) => {
                 [].concat(message).forEach(msg => expect(logArgs[idx][0]).toContain(msg));
               });
 
-              expect(console.error).toHaveBeenCalledTimes(2);
+              expect(errorSpy).toHaveBeenCalledTimes(2);
               expect(errArgs[0][1]).toContain('You should not have done that');
               expect(errArgs[1][0]).toContain('Ooops, there were TWO errors');
               expect(errArgs[1][0]).toContain('Clean-up might or might not be needed');
@@ -519,9 +519,8 @@ describe('AbstractCli', () => {
 
               expect(cubicle).toEqual(confirmCleanUp ? [] : ['foo', 'bar']);
               expect(cli._cleanUper.hasTasks()).toBe(false);
-
-              done();
-            });
+            }).
+            then(done, done.fail);
 
           setTimeout(() => process.stdin.emit('data', `${confirmCleanUp ? 'y' : 'n'}\n`));
         });
