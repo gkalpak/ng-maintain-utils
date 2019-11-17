@@ -8,6 +8,7 @@ let EventEmitter = events.EventEmitter;
 
 // Imports - Local
 let Utils = require('../../lib/utils');
+let {reversePromise} = require('../helpers/utils');
 
 // Tests
 describe('Utils', () => {
@@ -241,7 +242,6 @@ describe('Utils', () => {
     let mockProc;
 
     beforeEach(() => {
-
       mockProc = new EventEmitter();
       mockProc.exit = jasmine.createSpy('mockProc.exit');
       mockProc.stdout = {
@@ -616,10 +616,4 @@ describe('Utils', () => {
         then(done, done.fail);
     });
   });
-
-  // Helpers
-  function reversePromise(promise) {
-    // "Reverse" the promise; i.e `resolve` --> `reject`, `reject` --> `resolve`.
-    return promise.then(v => Promise.reject(v), e => Promise.resolve(e));
-  }
 });

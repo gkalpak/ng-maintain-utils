@@ -10,6 +10,7 @@ let CleanUper = require('../../lib/clean-uper');
 let Phase = require('../../lib/phase');
 let UiUtils = require('../../lib/ui-utils');
 let Utils = require('../../lib/utils');
+let {reversePromise} = require('../helpers/utils');
 
 // Tests
 describe('AbstractCli', () => {
@@ -714,10 +715,5 @@ describe('AbstractCli', () => {
   function forceEnableChalk() {
     // In some environments (e.g. Windows on Travis), `chalk.level` is `0`.
     chalk.level = chalk.level || 1;
-  }
-
-  function reversePromise(promise) {
-    // "Reverse" the promise; i.e `resolve` --> `reject`, `reject` --> `resolve`.
-    return promise.then(v => Promise.reject(v), e => Promise.resolve(e));
   }
 });
