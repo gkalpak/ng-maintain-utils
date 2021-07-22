@@ -247,8 +247,8 @@ The following test-types/modes are available:
   code-linting and e2e tests are omitted._
 
 
-[build-status]: https://travis-ci.org/gkalpak/ng-maintain-utils
-[build-status-image]: https://travis-ci.org/gkalpak/ng-maintain-utils.svg?branch=master
+[build-status]: https://github.com/gkalpak/ng-maintain-utils/actions/workflows/ci.yml
+[build-status-image]: https://github.com/gkalpak/ng-maintain-utils/actions/workflows/ci.yml/badge.svg?branch=master&event=push
 [diff-highlight]: https://github.com/git/git/blob/master/contrib/diff-highlight/README
 [ng-cla-check]: https://www.npmjs.com/package/@gkalpak/ng-cla-check
 [ng-maintain]: https://www.npmjs.com/package/@gkalpak/ng-maintain

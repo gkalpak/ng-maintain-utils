@@ -691,7 +691,7 @@ describe('AbstractCli', () => {
 
   // Helpers
   function forceEnableChalk() {
-    // In some environments (e.g. Windows on Travis), `chalk.level` is `0`.
+    // In some environments (e.g. Windows on CI), `chalk.level` is `0`.
     chalk.level = chalk.level || 1;
   }
 });
